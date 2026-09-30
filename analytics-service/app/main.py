@@ -1,7 +1,6 @@
-import os
+import os, logging
 from datetime import datetime, timezone
 from functools import lru_cache
-
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
@@ -13,6 +12,7 @@ load_dotenv()
 
 app = FastAPI(title="EventFlow Analytics", version="1.0.0")
 
+logger = logging.getLogger(__name__)
 
 class HealthResponse(BaseModel):
     status: str
@@ -39,6 +39,7 @@ def get_db() -> Database:
         return _client().get_default_database()
     except (RuntimeError, PyMongoError) as exc:
         # Missing MONGODB_URI, or a URI without a database name
+        logger.exception("MongoDB is not configured")
         raise HTTPException(status_code=503, detail="Database not configured") from exc
 
 
@@ -59,4 +60,5 @@ def event_stats(db: Database = Depends(get_db)) -> EventStats:
             upcomingEvents=db["events"].count_documents({"date": {"$gte": today}}),
         )
     except PyMongoError as exc:
+        logger.exception("MongoDB query failed while computing event stats")
         raise HTTPException(status_code=503, detail="Database unavailable") from exc
