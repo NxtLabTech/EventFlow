@@ -10,13 +10,20 @@ async function registerParticipant(req, res) {
   if (Object.keys(errors).length) throw new HttpError(400, 'Validation failed', errors);
 
   const existing = await Registration.exists({ eventId: event._id, email: value.email });
-  if (existing) throw new HttpError(409, 'This email is already registered for this event');
+  if (existing) throw new HttpError(409, 'You are already registered for this event');
 
   const count = await Registration.countDocuments({ eventId: event._id });
   if (count >= event.capacity) throw new HttpError(409, 'Event is full');
 
-  // The unique index turns a concurrent duplicate into a 409 via the error handler.
-  const registration = await Registration.create({ ...value, eventId: event._id });
+  // A concurrent duplicate slips past the check above but is caught by the unique index.
+  let registration;
+  try {
+    registration = await Registration.create({ ...value, eventId: event._id });
+  } catch (err) {
+    if (err.code === 11000) throw new HttpError(409, 'You are already registered for this event.');
+    throw err;
+  }
+
   res.status(201).json(registration);
 }
 
