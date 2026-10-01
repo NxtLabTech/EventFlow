@@ -148,6 +148,21 @@ describe('registrations', () => {
     expect(res.status).toBe(409);
   });
 
+  test('rejects a duplicate that slips past the existence check with a clear 409', async () => {
+    const event = await createEvent();
+    const body = { name: 'Asha', email: 'asha@example.com' };
+    await request(app).post(`/api/events/${event._id}/register`).send(body);
+
+    // Simulate a concurrent request: the check misses, so the unique index rejects the insert
+    const spy = vi.spyOn(Registration, 'exists').mockResolvedValueOnce(null);
+    const res = await request(app).post(`/api/events/${event._id}/register`).send(body);
+    spy.mockRestore();
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('You are already registered for this event.');
+    expect(await Registration.countDocuments({ eventId: event._id })).toBe(1);
+  });
+
   test('rejects registration when capacity is reached', async () => {
     const event = await createEvent({ capacity: 1 });
     await request(app).post(`/api/events/${event._id}/register`).send({ name: 'A', email: 'a@x.com' });
