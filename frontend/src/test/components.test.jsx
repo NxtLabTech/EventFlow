@@ -63,6 +63,22 @@ describe('RegistrationForm', () => {
     expect(onRegistered).toHaveBeenCalled();
   });
 
+  test('disables the register button while submitting', async () => {
+    let resolveRequest;
+    globalThis.fetch = vi.fn(() => new Promise((resolve) => {
+      resolveRequest = resolve;
+    }));
+    render(<RegistrationForm eventId="abc" />);
+    await userEvent.type(screen.getByLabelText('Name'), 'Asha');
+    await userEvent.type(screen.getByLabelText('Email'), 'asha@example.com');
+    await userEvent.click(screen.getByRole('button', { name: 'Register' }));
+    expect(screen.getByRole('button', { name: 'Registering...' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Registering...' }));
+    expect(fetch).toHaveBeenCalledTimes(1);
+    resolveRequest({ ok: true, status: 201, json: async () => ({ _id: '1' }) });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Register' })).toBeEnabled());
+  });
+
   test('shows the server error for a duplicate registration', async () => {
     mockFetch(409, { error: 'This email is already registered for this event' });
     render(<RegistrationForm eventId="abc" />);
