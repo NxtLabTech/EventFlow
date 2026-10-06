@@ -117,6 +117,59 @@ describe('events', () => {
     expect((await request(app).get(`/api/events/${event._id}`)).status).toBe(404);
     expect(await Registration.countDocuments()).toBe(0);
   });
+  test('rejects event with missing required fields', async () => {
+  const res = await request(app)
+    .post('/api/events')
+    .send({});
+
+  expect(res.status).toBe(400);
+  expect(res.body.error).toBe('Validation failed');
+  expect(res.body.details).toEqual(
+    expect.objectContaining({
+      title: expect.any(String),
+      location: expect.any(String),
+      organizer: expect.any(String),
+      date: expect.any(String),
+      time: expect.any(String),
+      capacity: expect.any(String),
+    })
+  );
+});
+test('does not insert invalid event into MongoDB', async () => {
+  const before = await Event.countDocuments();
+
+  const res = await request(app)
+    .post('/api/events')
+    .send(validEvent({
+      title: '',
+      capacity: 0,
+      date: 'invalid-date',
+    }));
+
+  const after = await Event.countDocuments();
+
+  expect(res.status).toBe(400);
+  expect(after).toBe(before);
+});
+test('reports all invalid event fields', async () => {
+  const res = await request(app)
+    .post('/api/events')
+    .send(validEvent({
+      title: '',
+      time: '99:99',
+      capacity: 0,
+    }));
+
+  expect(res.status).toBe(400);
+  expect(res.body.error).toBe('Validation failed');
+  expect(res.body.details).toEqual(
+    expect.objectContaining({
+      title: expect.any(String),
+      time: expect.any(String),
+      capacity: expect.any(String),
+    })
+  );
+});
 });
 
 describe('registrations', () => {

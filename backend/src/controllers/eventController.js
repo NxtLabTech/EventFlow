@@ -16,7 +16,8 @@ function parseOrThrow(body) {
 }
 
 async function createEvent(req, res) {
-  const event = await Event.create(parseOrThrow(req.body));
+  const data = parseOrThrow(req.body);
+  const event = await Event.create(data);
   res.status(201).json(event);
 }
 
