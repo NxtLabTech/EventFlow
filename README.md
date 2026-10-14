@@ -128,7 +128,7 @@ Every service ships a `.env.example`; copy it to `.env` (which is git-ignored). 
 | `analytics-service/.env` | `MONGODB_URI` | Same database as the backend |
 | `admin/.env` | `MONGODB_URI` | Same database as the backend (used by `sync_from_mongo`) |
 | | `DJANGO_SECRET_KEY` | Required when `DJANGO_DEBUG=false` |
-| | `DJANGO_DEBUG` | `true` for local development |
+| | `DJANGO_DEBUG` | Defaults to `false`. Set `true` for local development (`.env.example` already does) |
 | | `DJANGO_ALLOWED_HOSTS` | Comma separated hosts |
 
 ## API Endpoints
@@ -209,7 +209,7 @@ cd frontend && npm test
 # FastAPI (5 tests) - with the venv active
 cd analytics-service && python -m pytest
 
-# Django admin (4 tests) - with the venv active
+# Django admin (8 tests) - with the venv active
 cd admin && python manage.py test
 ```
 
