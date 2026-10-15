@@ -93,6 +93,43 @@ describe('EventsList', () => {
     render(<MemoryRouter><EventsList /></MemoryRouter>);
     expect(await screen.findByText('Node Meetup')).toBeInTheDocument();
   });
+
+  test('filters between all, upcoming, and past events', async () => {
+    mockFetch(200, [
+      { _id: '1', title: 'Upcoming Tech Talk', date: '2099-01-15T00:00:00.000Z', time: '18:30', location: 'Hyderabad', organizer: 'Org', capacity: 10 },
+      { _id: '2', title: 'Past Conference', date: '2000-01-15T00:00:00.000Z', time: '10:00', location: 'Bengaluru', organizer: 'Org', capacity: 20 },
+    ]);
+    render(<MemoryRouter><EventsList /></MemoryRouter>);
+
+    expect(await screen.findByText('Upcoming Tech Talk')).toBeInTheDocument();
+    expect(screen.getByText('Past Conference')).toBeInTheDocument();
+
+    // Filter upcoming
+    await userEvent.click(screen.getByRole('button', { name: 'Upcoming Events' }));
+    expect(screen.getByText('Upcoming Tech Talk')).toBeInTheDocument();
+    expect(screen.queryByText('Past Conference')).not.toBeInTheDocument();
+
+    // Filter past
+    await userEvent.click(screen.getByRole('button', { name: 'Past Events' }));
+    expect(screen.queryByText('Upcoming Tech Talk')).not.toBeInTheDocument();
+    expect(screen.getByText('Past Conference')).toBeInTheDocument();
+
+    // Back to all
+    await userEvent.click(screen.getByRole('button', { name: 'All Events' }));
+    expect(screen.getByText('Upcoming Tech Talk')).toBeInTheDocument();
+    expect(screen.getByText('Past Conference')).toBeInTheDocument();
+  });
+
+  test('shows empty state when no events match upcoming or past filter', async () => {
+    mockFetch(200, [
+      { _id: '1', title: 'Upcoming Tech Talk', date: '2099-01-15T00:00:00.000Z', time: '18:30', location: 'Hyderabad', organizer: 'Org', capacity: 10 },
+    ]);
+    render(<MemoryRouter><EventsList /></MemoryRouter>);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Past Events' }));
+    expect(screen.getByText('No past events')).toBeInTheDocument();
+    expect(screen.queryByText('Upcoming Tech Talk')).not.toBeInTheDocument();
+  });
 });
 
 describe('EventCard', () => {
