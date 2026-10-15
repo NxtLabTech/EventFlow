@@ -137,4 +137,35 @@ describe('EventDetails', () => {
     expect(await screen.findByText('asha@example.com')).toBeInTheDocument();
     expect(screen.getByText('Registration successful!')).toBeInTheDocument();
   });
+
+  test('cancels a registration and shows a confirmation message', async () => {
+    let registrations = [
+      { _id: 'r1', name: 'Asha', email: 'asha@example.com', registeredAt: '2026-01-01T00:00:00Z' },
+    ];
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    globalThis.fetch = vi.fn(async (url, opts) => {
+      const ok = (body, status = 200) => ({ ok: true, status, json: async () => body });
+      if (opts?.method === 'DELETE' && url.includes('/registrations/r1')) {
+        registrations = [];
+        return ok({ message: 'Registration cancelled' });
+      }
+      if (url.endsWith('/registrations')) {
+        return ok(registrations);
+      }
+      return ok({ ...event, registrationCount: registrations.length });
+    });
+
+    renderDetails();
+    expect(await screen.findByText('Asha')).toBeInTheDocument();
+
+    const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+    await userEvent.click(cancelButton);
+
+    expect(window.confirm).toHaveBeenCalled();
+    expect(await screen.findByRole('status')).toHaveTextContent(/cancelled successfully/i);
+    await waitFor(() => {
+      expect(screen.queryByText('asha@example.com')).not.toBeInTheDocument();
+    });
+  });
 });

@@ -13,6 +13,8 @@ export default function EventDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [deleteError, setDeleteError] = useState(null);
+  const [cancelMessage, setCancelMessage] = useState(null);
+  const [cancelError, setCancelError] = useState(null);
 
   const event = useFetch(() => api.getEvent(id), [id]);
   const regs = useFetch(() => api.listRegistrations(id), [id]);
@@ -35,8 +37,23 @@ export default function EventDetails() {
   }
 
   function handleRegistered() {
+    setCancelMessage(null);
     event.reload();
     regs.reload();
+  }
+
+  async function handleCancelRegistration(reg) {
+    if (!window.confirm(`Cancel registration for ${reg.name} (${reg.email})?`)) return;
+    setCancelError(null);
+    setCancelMessage(null);
+    try {
+      await api.cancelRegistration(id, reg._id);
+      setCancelMessage(`Registration for ${reg.name} cancelled successfully.`);
+      event.reload();
+      regs.reload();
+    } catch (err) {
+      setCancelError(err.message || 'Failed to cancel registration');
+    }
   }
 
   return (
@@ -72,9 +89,15 @@ export default function EventDetails() {
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">Registered participants</h2>
+        {cancelMessage && (
+          <div className="mb-3 rounded-md bg-emerald-50 p-3 text-sm text-emerald-800 ring-1 ring-emerald-200" role="status">
+            {cancelMessage}
+          </div>
+        )}
+        {cancelError && <div className="mb-3"><ErrorMessage message={cancelError} /></div>}
         {regs.loading && <Loading />}
         {regs.error && <ErrorMessage message={regs.error.message} onRetry={regs.reload} />}
-        {regs.data && <RegistrationList registrations={regs.data} />}
+        {regs.data && <RegistrationList registrations={regs.data} onCancel={handleCancelRegistration} />}
       </section>
     </div>
   );

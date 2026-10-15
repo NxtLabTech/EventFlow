@@ -163,6 +163,60 @@ describe('registrations', () => {
     const get = await request(app).get(`/api/events/${id}/registrations`);
     expect(get.status).toBe(404);
   });
+
+  test('cancels an existing registration and restores event capacity', async () => {
+    const event = await createEvent({ capacity: 1 });
+    const regRes = await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: 'Asha', email: 'asha@example.com' });
+    expect(regRes.status).toBe(201);
+
+    // Event is full
+    const fullRes = await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: 'Bob', email: 'bob@example.com' });
+    expect(fullRes.status).toBe(409);
+
+    // Cancel registration
+    const cancelRes = await request(app).delete(
+      `/api/events/${event._id}/registrations/${regRes.body._id}`
+    );
+    expect(cancelRes.status).toBe(200);
+    expect(cancelRes.body.message).toMatch(/cancelled/i);
+
+    // Capacity is restored: now Bob can register
+    const retryRes = await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: 'Bob', email: 'bob@example.com' });
+    expect(retryRes.status).toBe(201);
+  });
+
+  test('cancels registration by email', async () => {
+    const event = await createEvent();
+    await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: 'Asha', email: 'asha@example.com' });
+
+    const cancelRes = await request(app)
+      .delete(`/api/events/${event._id}/registrations`)
+      .send({ email: 'asha@example.com' });
+    expect(cancelRes.status).toBe(200);
+
+    const list = await request(app).get(`/api/events/${event._id}/registrations`);
+    expect(list.body).toHaveLength(0);
+  });
+
+  test('cancelling nonexistent registration returns 404', async () => {
+    const event = await createEvent();
+    const missingId = new mongoose.Types.ObjectId();
+    const res = await request(app).delete(`/api/events/${event._id}/registrations/${missingId}`);
+    expect(res.status).toBe(404);
+  });
+
+  test('cancelling registration with invalid event ID returns 404', async () => {
+    const res = await request(app).delete('/api/events/invalid-event-id/registrations/some-id');
+    expect(res.status).toBe(404);
+  });
 });
 
 describe('stats & misc', () => {
