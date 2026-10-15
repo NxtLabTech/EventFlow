@@ -137,4 +137,18 @@ describe('EventDetails', () => {
     expect(await screen.findByText('asha@example.com')).toBeInTheDocument();
     expect(screen.getByText('Registration successful!')).toBeInTheDocument();
   });
+
+  test('renders an Export CSV link with correct href', async () => {
+    globalThis.fetch = vi.fn(async (url) => {
+      if (url.endsWith('/registrations')) {
+        return { ok: true, status: 200, json: async () => [] };
+      }
+      return { ok: true, status: 200, json: async () => event };
+    });
+    renderDetails();
+    const exportLink = await screen.findByRole('link', { name: 'Export CSV' });
+    expect(exportLink).toBeInTheDocument();
+    expect(exportLink).toHaveAttribute('href', '/api/events/e1/registrations/export');
+    expect(exportLink).toHaveAttribute('download');
+  });
 });

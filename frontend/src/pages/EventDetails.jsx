@@ -71,7 +71,16 @@ export default function EventDetails() {
       {isFull && <p className="text-sm text-amber-700">This event is full. Registration is closed.</p>}
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Registered participants</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Registered participants</h2>
+          <a
+            href={api.exportRegistrationsUrl(id)}
+            download
+            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Export CSV
+          </a>
+        </div>
         {regs.loading && <Loading />}
         {regs.error && <ErrorMessage message={regs.error.message} onRetry={regs.reload} />}
         {regs.data && <RegistrationList registrations={regs.data} />}
