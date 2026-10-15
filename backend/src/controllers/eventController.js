@@ -21,7 +21,12 @@ async function createEvent(req, res) {
 }
 
 async function listEvents(req, res) {
-  const events = await Event.find().sort({ date: 1, time: 1 });
+  const filter = {};
+  if (typeof req.query.search === 'string' && req.query.search.trim()) {
+    const escaped = req.query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    filter.title = { $regex: escaped, $options: 'i' };
+  }
+  const events = await Event.find(filter).sort({ date: 1, time: 1 });
   res.json(events);
 }
 

@@ -37,7 +37,10 @@ const send = (method, path, data) =>
 
 export const api = {
   getStats: () => request('/stats'),
-  listEvents: () => request('/events'),
+  listEvents: (query) => {
+    const search = typeof query === 'string' ? query.trim() : query?.search?.trim();
+    return request(search ? `/events?search=${encodeURIComponent(search)}` : '/events');
+  },
   getEvent: (id) => request(`/events/${id}`),
   createEvent: (data) => send('POST', '/events', data),
   updateEvent: (id, data) => send('PUT', `/events/${id}`, data),

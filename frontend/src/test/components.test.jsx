@@ -93,6 +93,44 @@ describe('EventsList', () => {
     render(<MemoryRouter><EventsList /></MemoryRouter>);
     expect(await screen.findByText('Node Meetup')).toBeInTheDocument();
   });
+
+  test('searches events by name and shows empty state when no match', async () => {
+    const allEvents = [
+      { _id: '1', title: 'React Workshop', date: '2099-01-15T00:00:00.000Z', time: '18:30', location: 'Hyderabad', organizer: 'Org', capacity: 10 },
+      { _id: '2', title: 'Node Meetup', date: '2099-02-15T00:00:00.000Z', time: '18:30', location: 'Hyderabad', organizer: 'Org', capacity: 10 },
+    ];
+
+    globalThis.fetch = vi.fn(async (url) => {
+      const urlObj = new URL(url, 'http://localhost');
+      const search = urlObj.searchParams.get('search');
+      let data = allEvents;
+      if (search) {
+        data = allEvents.filter((e) => e.title.toLowerCase().includes(search.toLowerCase()));
+      }
+      return { ok: true, status: 200, json: async () => data };
+    });
+
+    render(<MemoryRouter><EventsList /></MemoryRouter>);
+    expect(await screen.findByText('React Workshop')).toBeInTheDocument();
+    expect(screen.getByText('Node Meetup')).toBeInTheDocument();
+
+    const searchInput = screen.getByPlaceholderText('Search events...');
+    await userEvent.type(searchInput, 'Node');
+
+    await waitFor(() => {
+      expect(screen.getByText('Node Meetup')).toBeInTheDocument();
+      expect(screen.queryByText('React Workshop')).not.toBeInTheDocument();
+    });
+
+    await userEvent.clear(searchInput);
+    await userEvent.type(searchInput, 'NonExistent');
+
+    expect(await screen.findByText('No events found matching "NonExistent"')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clear' }));
+    expect(await screen.findByText('React Workshop')).toBeInTheDocument();
+    expect(screen.getByText('Node Meetup')).toBeInTheDocument();
+  });
 });
 
 describe('EventCard', () => {

@@ -71,6 +71,21 @@ describe('events', () => {
     expect(res.body.map((e) => e.title)).toEqual(['Sooner', 'Later']);
   });
 
+  test('searches events by title case-insensitively', async () => {
+    await createEvent({ title: 'React Workshop', date: '2099-03-01' });
+    await createEvent({ title: 'Node Meetup', date: '2099-04-01' });
+    await createEvent({ title: 'Vue Conference', date: '2099-05-01' });
+
+    const res = await request(app).get('/api/events?search=meetup');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].title).toBe('Node Meetup');
+
+    const empty = await request(app).get('/api/events?search=Python');
+    expect(empty.status).toBe(200);
+    expect(empty.body).toEqual([]);
+  });
+
   test('gets an event by id with registration count', async () => {
     const event = await createEvent();
     const res = await request(app).get(`/api/events/${event._id}`);
