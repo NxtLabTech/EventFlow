@@ -19,12 +19,8 @@ export default function EventsList() {
       </div>
       {loading && <Loading />}
       {error && <ErrorMessage message={error.message} onRetry={reload} />}
-      {events && events.length === 0 && (
-        <EmptyState title="No events yet">
-          <Link to="/events/new" className="text-indigo-600 underline">
-            Create your first event
-          </Link>
-        </EmptyState>
+      {!loading && !error && events?.length === 0 && (
+        <EmptyState title="No events available." />
       )}
       {events && events.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

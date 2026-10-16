@@ -74,10 +74,22 @@ describe('RegistrationForm', () => {
 });
 
 describe('EventsList', () => {
-  test('shows the empty state when there are no events', async () => {
+  test('shows a clear message when there are no events', async () => {
     mockFetch(200, []);
-    render(<MemoryRouter><EventsList /></MemoryRouter>);
-    expect(await screen.findByText('No events yet')).toBeInTheDocument();
+
+    render(
+      <MemoryRouter>
+        <EventsList />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByText('No events available.')
+    ).toBeInTheDocument();
+
+    expect(screen.queryByText('No events yet')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /create your first event/i }))
+      .not.toBeInTheDocument();
   });
 
   test('shows an error state when the API fails', async () => {
