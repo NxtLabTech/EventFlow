@@ -7,13 +7,22 @@ export default function EventCard({ event }) {
       to={`/events/${event._id}`}
       className="block rounded-lg bg-white p-5 shadow-sm ring-1 ring-slate-200 transition hover:shadow-md"
     >
-      <h3 className="text-lg font-semibold text-slate-900">{event.title}</h3>
+      <h3 className="text-lg font-semibold text-slate-900">
+        {event.title}
+      </h3>
+
       <p className="mt-1 text-sm text-slate-600">
         {formatDate(event.date)} at {event.time}
       </p>
+
       <p className="text-sm text-slate-600">{event.location}</p>
+
       <p className="mt-3 text-xs text-slate-500">
-        Organized by {event.organizer} · Capacity {event.capacity}
+        Organized by {event.organizer}
+      </p>
+
+      <p className="mt-2 text-sm font-medium text-slate-700">
+        Registrations: {event.registrationCount ?? 0} / {event.capacity}
       </p>
     </Link>
   );

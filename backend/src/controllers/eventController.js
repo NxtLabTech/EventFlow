@@ -22,7 +22,21 @@ async function createEvent(req, res) {
 
 async function listEvents(req, res) {
   const events = await Event.find().sort({ date: 1, time: 1 });
-  res.json(events);
+
+  const eventsWithRegistrationCount = await Promise.all(
+    events.map(async (event) => {
+      const registrationCount = await Registration.countDocuments({
+        eventId: event._id,
+      });
+
+      return {
+        ...event.toObject(),
+        registrationCount,
+      };
+    })
+  );
+
+  res.json(eventsWithRegistrationCount);
 }
 
 async function getEvent(req, res) {
