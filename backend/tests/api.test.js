@@ -174,6 +174,23 @@ describe('stats & misc', () => {
     expect(res.body).toEqual({ totalEvents: 2, totalRegistrations: 1, upcomingEvents: 1 });
   });
 
+  test('JSON parser errors return appropriate status codes', async () => {
+    const oversized = await request(app)
+      .post('/api/events')
+      .send({ description: 'x'.repeat(110000) });
+
+    expect(oversized.status).toBe(413);
+    expect(oversized.body.error).toBeDefined();
+
+    const unsupportedEncoding = await request(app)
+      .post('/api/events')
+      .set('Content-Encoding', 'unsupported')
+      .send({});
+
+    expect(unsupportedEncoding.status).toBe(415);
+    expect(unsupportedEncoding.body.error).toBeDefined();
+  });
+
   test('invalid JSON returns 400 and unknown route 404', async () => {
     const bad = await request(app).post('/api/events').set('Content-Type', 'application/json').send('{bad');
     expect(bad.status).toBe(400);
