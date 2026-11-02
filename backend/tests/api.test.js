@@ -104,6 +104,31 @@ describe('events', () => {
     expect(res.body.details.capacity).toBeDefined();
   });
 
+  test('concurrent registrations and capacity reduction never exceed capacity', async () => {
+    const event = await createEvent({ capacity: 5 });
+    const results = await Promise.all([
+      ...[1, 2, 3].map((i) => request(app).post(`/api/events/${event._id}/register`).send({ name: 'P', email: `p${i}@x.com` })),
+      request(app).put(`/api/events/${event._id}`).send(validEvent({ capacity: 1 })),
+    ]);
+    const stored = await Event.findById(event._id);
+    const actual = await Registration.countDocuments({ eventId: event._id });
+    expect(actual).toBeLessThanOrEqual(stored.capacity);
+    expect(stored.registrationCount).toBe(actual);
+    expect(results.every((r) => [200, 201, 400, 409].includes(r.status))).toBe(true);
+  });
+
+  test('backfills registration count for events created before it was tracked', async () => {
+    const event = await createEvent({ capacity: 2 });
+    await request(app).post(`/api/events/${event._id}/register`).send({ name: 'A', email: 'a@x.com' });
+    await Event.collection.updateOne({ _id: new mongoose.Types.ObjectId(event._id) }, { $unset: { registrationCount: '' } });
+
+    const res = await request(app).put(`/api/events/${event._id}`).send(validEvent({ capacity: 1 }));
+    expect(res.status).toBe(200);
+    expect(res.body.registrationCount).toBe(1);
+    const full = await request(app).post(`/api/events/${event._id}/register`).send({ name: 'B', email: 'b@x.com' });
+    expect(full.status).toBe(409);
+  });
+
   test('update of missing event returns 404', async () => {
     const res = await request(app).put(`/api/events/${new mongoose.Types.ObjectId()}`).send(validEvent());
     expect(res.status).toBe(404);
@@ -146,6 +171,17 @@ describe('registrations', () => {
     await request(app).post(`/api/events/${event._id}/register`).send(body);
     const res = await request(app).post(`/api/events/${event._id}/register`).send({ ...body, email: 'ASHA@example.com' });
     expect(res.status).toBe(409);
+  });
+
+  test('a rejected duplicate does not consume a seat', async () => {
+    const event = await createEvent({ capacity: 2 });
+    await request(app).post(`/api/events/${event._id}/register`).send({ name: 'A', email: 'a@x.com' });
+    // Bypass the pre-check so the unique index rejects the insert after a seat was reserved
+    const exists = vi.spyOn(Registration, 'exists').mockResolvedValueOnce(null);
+    const dup = await request(app).post(`/api/events/${event._id}/register`).send({ name: 'A', email: 'a@x.com' });
+    exists.mockRestore();
+    expect(dup.status).toBe(409);
+    expect((await Event.findById(event._id)).registrationCount).toBe(1);
   });
 
   test('rejects registration when capacity is reached', async () => {
