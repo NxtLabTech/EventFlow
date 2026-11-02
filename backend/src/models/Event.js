@@ -9,6 +9,8 @@ const eventSchema = new mongoose.Schema(
     location: { type: String, required: true, trim: true, maxlength: 200 },
     organizer: { type: String, required: true, trim: true, maxlength: 100 },
     capacity: { type: Number, required: true, min: 1 },
+    // Kept on the event so capacity checks can be done atomically against a single document
+    registrationCount: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );
