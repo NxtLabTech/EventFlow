@@ -70,12 +70,12 @@ export default function EventForm({ initialValues, onSubmit, submitLabel = 'Save
         onChange={handleChange}
         error={errors.description}
       />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
         <FormField label="Date" name="date" type="date" value={values.date} onChange={handleChange} error={errors.date} />
         <FormField label="Time" name="time" type="time" value={values.time} onChange={handleChange} error={errors.time} />
       </div>
       <FormField label="Location" name="location" value={values.location} onChange={handleChange} error={errors.location} />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
         <FormField label="Organizer" name="organizer" value={values.organizer} onChange={handleChange} error={errors.organizer} />
         <FormField
           label="Capacity"
