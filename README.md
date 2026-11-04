@@ -71,15 +71,14 @@ npm install
 cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
 ```
 
-Set organizer auth in `backend/.env` (required):
+Copy `.env.example` to `.env`. For local / reviewer testing, the example file already includes a demo organizer account:
 
-```bash
-ORGANIZER_USERNAME=organizer
-JWT_SECRET=replace-with-a-long-random-string
-# Generate a bcrypt hash of your password (do not put the plain password in .env):
-node -e "console.log(require('bcryptjs').hashSync('your-password', 10))"
-# Paste the printed hash into ORGANIZER_PASSWORD_HASH=...
-```
+| Field | Value |
+| --- | --- |
+| Username | `organizer` |
+| Password | `password` |
+
+(`ORGANIZER_PASSWORD_HASH` in `.env.example` is the bcrypt hash of `password`. Change the hash and `JWT_SECRET` before any real deployment.)
 
 ```bash
 npm run dev                 # or: npm start
@@ -87,13 +86,19 @@ npm run dev                 # or: npm start
 
 Check it: <http://localhost:5000/api/health> returns `{"status":"ok"}`.
 
-Log in from the UI at <http://localhost:5173/login>, or:
+Log in from the UI at <http://localhost:5173/login> with **organizer** / **password**, or:
 
 ```bash
-curl -X POST http://localhost:5000/api/auth/login -H "Content-Type: application/json" -d "{\"username\":\"organizer\",\"password\":\"your-password\"}"
+curl -X POST http://localhost:5000/api/auth/login -H "Content-Type: application/json" -d "{\"username\":\"organizer\",\"password\":\"password\"}"
 ```
 
 Use the returned token as `Authorization: Bearer <token>` on organizer-only requests.
+
+To use a different password, generate a new hash and put it in `ORGANIZER_PASSWORD_HASH`:
+
+```bash
+node -e "console.log(require('bcryptjs').hashSync('your-password', 10))"
+```
 
 ### 2. Frontend (React, port 5173)
 
