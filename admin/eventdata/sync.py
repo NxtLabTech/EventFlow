@@ -5,9 +5,32 @@ from django.db import transaction
 from .models import Event, Registration
 
 
+class MissingRequiredFieldError(Exception):
+    """Raised when a MongoDB document is missing a field required for the admin snapshot."""
+
+    def __init__(self, collection, document_id, field):
+        self.collection = collection
+        self.document_id = document_id
+        self.field = field
+        super().__init__(
+            f"{collection} document {document_id!s} is missing required field '{field}'"
+        )
+
+
+EVENT_REQUIRED_FIELDS = ("title", "date", "time", "location", "organizer", "capacity")
+REGISTRATION_REQUIRED_FIELDS = ("name", "email", "eventId")
+
+
 def _aware(dt):
     # pymongo returns naive datetimes (always UTC) unless tz_aware is set
     return dt.replace(tzinfo=timezone.utc) if dt and dt.tzinfo is None else dt
+
+
+def _require(doc, collection, fields):
+    document_id = doc.get("_id", "<unknown>")
+    for field in fields:
+        if field not in doc:
+            raise MissingRequiredFieldError(collection, document_id, field)
 
 
 def sync_from_mongo(db):
@@ -21,6 +44,7 @@ def sync_from_mongo(db):
 
         events = {}
         for doc in db["events"].find():
+            _require(doc, "events", EVENT_REQUIRED_FIELDS)
             events[doc["_id"]] = Event.objects.create(
                 mongo_id=str(doc["_id"]),
                 title=doc["title"],
@@ -36,6 +60,7 @@ def sync_from_mongo(db):
 
         registrations = 0
         for doc in db["registrations"].find():
+            _require(doc, "registrations", REGISTRATION_REQUIRED_FIELDS)
             event = events.get(doc["eventId"])
             if event is None:  # orphaned registration; skip it
                 continue

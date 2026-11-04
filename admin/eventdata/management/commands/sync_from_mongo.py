@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand, CommandError
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-from eventdata.sync import sync_from_mongo
+from eventdata.sync import MissingRequiredFieldError, sync_from_mongo
 
 
 class Command(BaseCommand):
@@ -15,6 +15,8 @@ class Command(BaseCommand):
         client = MongoClient(settings.MONGODB_URI, serverSelectionTimeoutMS=3000)
         try:
             events, registrations = sync_from_mongo(client.get_default_database())
+        except MissingRequiredFieldError as exc:
+            raise CommandError(str(exc)) from exc
         except PyMongoError as exc:
             raise CommandError(f"Could not read from MongoDB: {exc}") from exc
         finally:
