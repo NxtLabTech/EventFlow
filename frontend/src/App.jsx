@@ -5,6 +5,7 @@ import EventsList from './pages/EventsList.jsx';
 import EventDetails from './pages/EventDetails.jsx';
 import CreateEvent from './pages/CreateEvent.jsx';
 import EditEvent from './pages/EditEvent.jsx';
+import Login from './pages/Login.jsx';
 import NotFound from './pages/NotFound.jsx';
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/events/new" element={<CreateEvent />} />
           <Route path="/events/:id" element={<EventDetails />} />
           <Route path="/events/:id/edit" element={<EditEvent />} />
+          <Route path="/login" element={<Login />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

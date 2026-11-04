@@ -1,7 +1,7 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useState } from 'react';
 import useFetch from '../hooks/useFetch.js';
-import { api } from '../api/client.js';
+import { api, getToken } from '../api/client.js';
 import Loading from '../components/Loading.jsx';
 import ErrorMessage from '../components/ErrorMessage.jsx';
 import RegistrationForm from '../components/RegistrationForm.jsx';
@@ -13,9 +13,10 @@ export default function EventDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [deleteError, setDeleteError] = useState(null);
+  const isOrganizer = Boolean(getToken());
 
   const event = useFetch(() => api.getEvent(id), [id]);
-  const regs = useFetch(() => api.listRegistrations(id), [id]);
+  const regs = useFetch(() => (isOrganizer ? api.listRegistrations(id) : Promise.resolve([])), [id, isOrganizer]);
 
   if (event.loading) return <Loading />;
   if (event.error?.status === 404) return <NotFound message="Event not found" />;
@@ -30,13 +31,17 @@ export default function EventDetails() {
       await api.deleteEvent(id);
       navigate('/events');
     } catch (err) {
+      if (err.status === 401) {
+        navigate('/login', { state: { from: `/events/${id}` } });
+        return;
+      }
       setDeleteError(err.message);
     }
   }
 
   function handleRegistered() {
     event.reload();
-    regs.reload();
+    if (isOrganizer) regs.reload();
   }
 
   return (
@@ -44,14 +49,16 @@ export default function EventDetails() {
       <section className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-2xl font-bold">{e.title}</h1>
-          <div className="flex gap-2">
-            <Link to={`/events/${id}/edit`} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
-              Edit
-            </Link>
-            <button onClick={handleDelete} className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">
-              Delete
-            </button>
-          </div>
+          {isOrganizer && (
+            <div className="flex gap-2">
+              <Link to={`/events/${id}/edit`} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
+                Edit
+              </Link>
+              <button onClick={handleDelete} className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">
+                Delete
+              </button>
+            </div>
+          )}
         </div>
         {deleteError && <div className="mt-3"><ErrorMessage message={deleteError} /></div>}
         <p className="mt-3 text-slate-600">{e.description || 'No description provided.'}</p>
@@ -72,9 +79,17 @@ export default function EventDetails() {
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">Registered participants</h2>
-        {regs.loading && <Loading />}
-        {regs.error && <ErrorMessage message={regs.error.message} onRetry={regs.reload} />}
-        {regs.data && <RegistrationList registrations={regs.data} />}
+        {!isOrganizer && (
+          <p className="text-sm text-slate-600">
+            <Link to="/login" state={{ from: `/events/${id}` }} className="text-indigo-600 hover:underline">
+              Sign in as an organizer
+            </Link>{' '}
+            to view the registration list.
+          </p>
+        )}
+        {isOrganizer && regs.loading && <Loading />}
+        {isOrganizer && regs.error && <ErrorMessage message={regs.error.message} onRetry={regs.reload} />}
+        {isOrganizer && regs.data && <RegistrationList registrations={regs.data} />}
       </section>
     </div>
   );
