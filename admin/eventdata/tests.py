@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 
 from .models import Event, Registration
-from .sync import sync_from_mongo
+from .sync import MissingRequiredFieldError, sync_from_mongo
 
 
 def make_db():
@@ -51,8 +51,55 @@ class SyncTests(TestCase):
         self.assertEqual(Event.objects.count(), 1)
         self.assertEqual(Registration.objects.count(), 1)
 
+    def test_missing_required_event_field_raises_clear_error(self):
+        db = mongomock.MongoClient().eventflow
+        event_id = ObjectId()
+        db.events.insert_one(
+            {
+                "_id": event_id,
+                "title": "Broken Event",
+                # "date" intentionally missing
+                "time": "18:30",
+                "location": "Hyderabad",
+                "organizer": "NxtLabTech",
+                "capacity": 10,
+            }
+        )
+
+        with self.assertRaises(MissingRequiredFieldError) as ctx:
+            sync_from_mongo(db)
+
+        self.assertEqual(ctx.exception.collection, "events")
+        self.assertEqual(ctx.exception.document_id, event_id)
+        self.assertEqual(ctx.exception.field, "date")
+        self.assertIn(str(event_id), str(ctx.exception))
+        self.assertIn("'date'", str(ctx.exception))
+        # Transaction should have rolled back: no partial snapshot left behind
+        self.assertEqual(Event.objects.count(), 0)
+        self.assertEqual(Registration.objects.count(), 0)
+
+    def test_missing_required_registration_field_raises_clear_error(self):
+        db = make_db()
+        db.registrations.insert_one(
+            {
+                "_id": ObjectId(),
+                "name": "No Email",
+                # "email" intentionally missing
+                "eventId": db.events.find_one()["_id"],
+            }
+        )
+
+        with self.assertRaises(MissingRequiredFieldError) as ctx:
+            sync_from_mongo(db)
+
+        self.assertEqual(ctx.exception.collection, "registrations")
+        self.assertEqual(ctx.exception.field, "email")
+        self.assertEqual(Event.objects.count(), 0)
+        self.assertEqual(Registration.objects.count(), 0)
+
 
 class AdminTests(TestCase):
+
     def setUp(self):
         sync_from_mongo(make_db())
         get_user_model().objects.create_superuser("admin", "a@example.com", "pw-for-tests-123")
