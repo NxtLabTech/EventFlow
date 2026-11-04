@@ -3,7 +3,15 @@ import FormField from './FormField.jsx';
 import ErrorMessage from './ErrorMessage.jsx';
 import { toDateInput } from '../utils/format.js';
 
-const empty = { title: '', description: '', date: '', time: '', location: '', organizer: '', capacity: '' };
+const empty = {
+  title: '',
+  description: '',
+  date: '',
+  time: '',
+  location: '',
+  organizer: '',
+  capacity: '',
+};
 
 export function validateEvent(v) {
   const errors = {};
@@ -24,7 +32,7 @@ export function validateEvent(v) {
 // and may throw an ApiError (its `details` are shown next to the fields).
 export default function EventForm({ initialValues, onSubmit, submitLabel = 'Save event' }) {
   const [values, setValues] = useState(
-    initialValues ? { ...empty, ...initialValues, date: toDateInput(initialValues.date) } : empty
+    initialValues ? { ...empty, ...initialValues, date: toDateInput(initialValues.date) } : empty,
   );
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
@@ -58,9 +66,19 @@ export default function EventForm({ initialValues, onSubmit, submitLabel = 'Save
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-4 rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      className="space-y-4 rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200"
+    >
       {formError && <ErrorMessage message={formError} />}
-      <FormField label="Title" name="title" value={values.title} onChange={handleChange} error={errors.title} />
+      <FormField
+        label="Title"
+        name="title"
+        value={values.title}
+        onChange={handleChange}
+        error={errors.title}
+      />
       <FormField
         label="Description"
         name="description"
@@ -71,12 +89,38 @@ export default function EventForm({ initialValues, onSubmit, submitLabel = 'Save
         error={errors.description}
       />
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField label="Date" name="date" type="date" value={values.date} onChange={handleChange} error={errors.date} />
-        <FormField label="Time" name="time" type="time" value={values.time} onChange={handleChange} error={errors.time} />
+        <FormField
+          label="Date"
+          name="date"
+          type="date"
+          value={values.date}
+          onChange={handleChange}
+          error={errors.date}
+        />
+        <FormField
+          label="Time"
+          name="time"
+          type="time"
+          value={values.time}
+          onChange={handleChange}
+          error={errors.time}
+        />
       </div>
-      <FormField label="Location" name="location" value={values.location} onChange={handleChange} error={errors.location} />
+      <FormField
+        label="Location"
+        name="location"
+        value={values.location}
+        onChange={handleChange}
+        error={errors.location}
+      />
       <div className="grid gap-4 sm:grid-cols-2">
-        <FormField label="Organizer" name="organizer" value={values.organizer} onChange={handleChange} error={errors.organizer} />
+        <FormField
+          label="Organizer"
+          name="organizer"
+          value={values.organizer}
+          onChange={handleChange}
+          error={errors.organizer}
+        />
         <FormField
           label="Capacity"
           name="capacity"

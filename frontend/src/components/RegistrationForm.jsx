@@ -40,7 +40,11 @@ export default function RegistrationForm({ eventId, disabled, onRegistered }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-4 rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
+    <form
+      onSubmit={handleSubmit}
+      noValidate
+      className="space-y-4 rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200"
+    >
       <h2 className="text-lg font-semibold">Register</h2>
       {success && (
         <p role="status" className="rounded-md bg-green-50 p-3 text-sm text-green-700">
@@ -48,8 +52,23 @@ export default function RegistrationForm({ eventId, disabled, onRegistered }) {
         </p>
       )}
       {formError && <ErrorMessage message={formError} />}
-      <FormField label="Name" name="name" value={values.name} onChange={handleChange} error={errors.name} disabled={disabled} />
-      <FormField label="Email" name="email" type="email" value={values.email} onChange={handleChange} error={errors.email} disabled={disabled} />
+      <FormField
+        label="Name"
+        name="name"
+        value={values.name}
+        onChange={handleChange}
+        error={errors.name}
+        disabled={disabled}
+      />
+      <FormField
+        label="Email"
+        name="email"
+        type="email"
+        value={values.email}
+        onChange={handleChange}
+        error={errors.email}
+        disabled={disabled}
+      />
       <button
         type="submit"
         disabled={disabled || submitting}

@@ -9,7 +9,9 @@ import EventsList from '../pages/EventsList.jsx';
 import EventDetails from '../pages/EventDetails.jsx';
 
 function mockFetch(status, body) {
-  globalThis.fetch = vi.fn().mockResolvedValue({ ok: status < 400, status, json: async () => body });
+  globalThis.fetch = vi
+    .fn()
+    .mockResolvedValue({ ok: status < 400, status, json: async () => body });
 }
 
 afterEach(() => vi.restoreAllMocks());
@@ -36,7 +38,7 @@ describe('EventForm', () => {
     await userEvent.type(screen.getByLabelText('Capacity'), '25');
     await userEvent.click(screen.getByRole('button', { name: /save event/i }));
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Demo Day', date: '2099-01-15', capacity: 25 })
+      expect.objectContaining({ title: 'Demo Day', date: '2099-01-15', capacity: 25 }),
     );
   });
 });
@@ -76,46 +78,96 @@ describe('RegistrationForm', () => {
 describe('EventsList', () => {
   test('shows the empty state when there are no events', async () => {
     mockFetch(200, []);
-    render(<MemoryRouter><EventsList /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <EventsList />
+      </MemoryRouter>,
+    );
     expect(await screen.findByText('No events yet')).toBeInTheDocument();
   });
 
   test('shows an error state when the API fails', async () => {
     mockFetch(500, { error: 'Internal server error' });
-    render(<MemoryRouter><EventsList /></MemoryRouter>);
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Internal server error'));
+    render(
+      <MemoryRouter>
+        <EventsList />
+      </MemoryRouter>,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('Internal server error'),
+    );
   });
 
   test('renders event cards', async () => {
     mockFetch(200, [
-      { _id: '1', title: 'Node Meetup', date: '2099-01-15T00:00:00.000Z', time: '18:30', location: 'Hyderabad', organizer: 'Org', capacity: 10 },
+      {
+        _id: '1',
+        title: 'Node Meetup',
+        date: '2099-01-15T00:00:00.000Z',
+        time: '18:30',
+        location: 'Hyderabad',
+        organizer: 'Org',
+        capacity: 10,
+      },
     ]);
-    render(<MemoryRouter><EventsList /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <EventsList />
+      </MemoryRouter>,
+    );
     expect(await screen.findByText('Node Meetup')).toBeInTheDocument();
   });
 });
 
 describe('EventCard', () => {
   test('links to the event details page', () => {
-    const event = { _id: 'xyz', title: 'T', date: '2099-01-15T00:00:00.000Z', time: '09:00', location: 'L', organizer: 'O', capacity: 5 };
-    render(<MemoryRouter><EventCard event={event} /></MemoryRouter>);
+    const event = {
+      _id: 'xyz',
+      title: 'T',
+      date: '2099-01-15T00:00:00.000Z',
+      time: '09:00',
+      location: 'L',
+      organizer: 'O',
+      capacity: 5,
+    };
+    render(
+      <MemoryRouter>
+        <EventCard event={event} />
+      </MemoryRouter>,
+    );
     expect(screen.getByRole('link')).toHaveAttribute('href', '/events/xyz');
   });
 });
 
 describe('EventDetails', () => {
-  const event = { _id: 'e1', title: 'Node Meetup', description: '', date: '2099-01-15T00:00:00.000Z', time: '18:30', location: 'L', organizer: 'O', capacity: 5, registrationCount: 0 };
+  const event = {
+    _id: 'e1',
+    title: 'Node Meetup',
+    description: '',
+    date: '2099-01-15T00:00:00.000Z',
+    time: '18:30',
+    location: 'L',
+    organizer: 'O',
+    capacity: 5,
+    registrationCount: 0,
+  };
 
   function renderDetails() {
     render(
       <MemoryRouter initialEntries={['/events/e1']}>
-        <Routes><Route path='/events/:id' element={<EventDetails />} /></Routes>
-      </MemoryRouter>
+        <Routes>
+          <Route path="/events/:id" element={<EventDetails />} />
+        </Routes>
+      </MemoryRouter>,
     );
   }
 
   test('shows the not-found state for an unknown event', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({ error: 'Event not found' }) });
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: async () => ({ error: 'Event not found' }),
+    });
     renderDetails();
     expect(await screen.findByText('Event not found')).toBeInTheDocument();
   });
@@ -125,8 +177,23 @@ describe('EventDetails', () => {
     globalThis.fetch = vi.fn(async (url, opts) => {
       await new Promise((r) => setTimeout(r, 30)); // real network latency makes a loading state visible
       const ok = (body, status = 200) => ({ ok: true, status, json: async () => body });
-      if (opts?.method === 'POST') { registered = true; return ok({ _id: 'r1' }, 201); }
-      if (url.endsWith('/registrations')) return ok(registered ? [{ _id: 'r1', name: 'Asha', email: 'asha@example.com', registeredAt: '2026-01-01T00:00:00Z' }] : []);
+      if (opts?.method === 'POST') {
+        registered = true;
+        return ok({ _id: 'r1' }, 201);
+      }
+      if (url.endsWith('/registrations'))
+        return ok(
+          registered
+            ? [
+                {
+                  _id: 'r1',
+                  name: 'Asha',
+                  email: 'asha@example.com',
+                  registeredAt: '2026-01-01T00:00:00Z',
+                },
+              ]
+            : [],
+        );
       return ok({ ...event, registrationCount: registered ? 1 : 0 });
     });
     renderDetails();

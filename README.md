@@ -114,6 +114,50 @@ python manage.py runserver 8001
 
 Open <http://localhost:8001> and log in with the superuser you created.
 
+## Code Quality
+
+EventFlow uses ESLint for JavaScript linting and Prettier for consistent code formatting.
+
+The frontend and backend have separate configurations, while both share the root Prettier configuration.
+
+Run the following commands from the respective directories.
+
+### Frontend
+
+```bash
+cd frontend
+
+# Check for linting issues
+npm run lint
+
+# Automatically fix supported linting issues
+npm run lint:fix
+
+# Format source files
+npm run format
+
+# Check code formatting without modifying files
+npm run format:check
+```
+
+### Backend
+
+```bash
+cd backend
+
+# Check for linting issues
+npm run lint
+
+# Automatically fix supported linting issues
+npm run lint:fix
+
+# Format source and test files
+npm run format
+
+# Check code formatting without modifying files
+npm run format:check
+```
+
 ## Environment Variables
 
 Every service ships a `.env.example`; copy it to `.env` (which is git-ignored). Never commit real credentials.
@@ -224,7 +268,7 @@ Ideas that are **not** implemented yet:
 - Past events shown separately / event status
 - Editing data from the Django admin
 - Time zones for event times
-- Continuous integration and linting
+- Continuous integration
 - Deployment guide (production build, hosting)
 
 ## License
