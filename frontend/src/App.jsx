@@ -9,9 +9,9 @@ import NotFound from './pages/NotFound.jsx';
 
 export default function App() {
   return (
-    <>
+    <div className="flex min-h-screen flex-col bg-slate-50/60 text-slate-800 antialiased">
       <Navbar />
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/events" element={<EventsList />} />
@@ -21,6 +21,6 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
-    </>
+    </div>
   );
 }
