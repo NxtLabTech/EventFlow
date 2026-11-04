@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+.venv/
+venv/
+__pycache__/
+*.min.js
+package-lock.json

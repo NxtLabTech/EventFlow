@@ -38,7 +38,8 @@ const validEvent = (overrides = {}) => ({
   ...overrides,
 });
 
-const createEvent = async (overrides) => (await request(app).post('/api/events').send(validEvent(overrides))).body;
+const createEvent = async (overrides) =>
+  (await request(app).post('/api/events').send(validEvent(overrides))).body;
 
 describe('events', () => {
   test('creates an event', async () => {
@@ -54,11 +55,15 @@ describe('events', () => {
       .post('/api/events')
       .send(validEvent({ title: '', date: '2026-02-31', capacity: 0 }));
     expect(res.status).toBe(400);
-    expect(Object.keys(res.body.details)).toEqual(expect.arrayContaining(['title', 'date', 'capacity']));
+    expect(Object.keys(res.body.details)).toEqual(
+      expect.arrayContaining(['title', 'date', 'capacity']),
+    );
   });
 
   test('rejects overly long title', async () => {
-    const res = await request(app).post('/api/events').send(validEvent({ title: 'x'.repeat(101) }));
+    const res = await request(app)
+      .post('/api/events')
+      .send(validEvent({ title: 'x'.repeat(101) }));
     expect(res.status).toBe(400);
     expect(res.body.details.title).toBeDefined();
   });
@@ -97,21 +102,31 @@ describe('events', () => {
 
   test('does not allow capacity below current registrations', async () => {
     const event = await createEvent({ capacity: 2 });
-    await request(app).post(`/api/events/${event._id}/register`).send({ name: 'A', email: 'a@x.com' });
-    await request(app).post(`/api/events/${event._id}/register`).send({ name: 'B', email: 'b@x.com' });
-    const res = await request(app).put(`/api/events/${event._id}`).send(validEvent({ capacity: 1 }));
+    await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: 'A', email: 'a@x.com' });
+    await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: 'B', email: 'b@x.com' });
+    const res = await request(app)
+      .put(`/api/events/${event._id}`)
+      .send(validEvent({ capacity: 1 }));
     expect(res.status).toBe(400);
     expect(res.body.details.capacity).toBeDefined();
   });
 
   test('update of missing event returns 404', async () => {
-    const res = await request(app).put(`/api/events/${new mongoose.Types.ObjectId()}`).send(validEvent());
+    const res = await request(app)
+      .put(`/api/events/${new mongoose.Types.ObjectId()}`)
+      .send(validEvent());
     expect(res.status).toBe(404);
   });
 
   test('deletes an event and its registrations', async () => {
     const event = await createEvent();
-    await request(app).post(`/api/events/${event._id}/register`).send({ name: 'A', email: 'a@x.com' });
+    await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: 'A', email: 'a@x.com' });
     const res = await request(app).delete(`/api/events/${event._id}`);
     expect(res.status).toBe(200);
     expect((await request(app).get(`/api/events/${event._id}`)).status).toBe(404);
@@ -135,7 +150,9 @@ describe('registrations', () => {
 
   test('rejects invalid name/email', async () => {
     const event = await createEvent();
-    const res = await request(app).post(`/api/events/${event._id}/register`).send({ name: ' ', email: 'nope' });
+    const res = await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: ' ', email: 'nope' });
     expect(res.status).toBe(400);
     expect(Object.keys(res.body.details)).toEqual(expect.arrayContaining(['name', 'email']));
   });
@@ -144,21 +161,29 @@ describe('registrations', () => {
     const event = await createEvent();
     const body = { name: 'Asha', email: 'asha@example.com' };
     await request(app).post(`/api/events/${event._id}/register`).send(body);
-    const res = await request(app).post(`/api/events/${event._id}/register`).send({ ...body, email: 'ASHA@example.com' });
+    const res = await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ ...body, email: 'ASHA@example.com' });
     expect(res.status).toBe(409);
   });
 
   test('rejects registration when capacity is reached', async () => {
     const event = await createEvent({ capacity: 1 });
-    await request(app).post(`/api/events/${event._id}/register`).send({ name: 'A', email: 'a@x.com' });
-    const res = await request(app).post(`/api/events/${event._id}/register`).send({ name: 'B', email: 'b@x.com' });
+    await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: 'A', email: 'a@x.com' });
+    const res = await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: 'B', email: 'b@x.com' });
     expect(res.status).toBe(409);
     expect(res.body.error).toMatch(/full/i);
   });
 
   test('registration for a nonexistent event returns 404', async () => {
     const id = new mongoose.Types.ObjectId();
-    const post = await request(app).post(`/api/events/${id}/register`).send({ name: 'A', email: 'a@x.com' });
+    const post = await request(app)
+      .post(`/api/events/${id}/register`)
+      .send({ name: 'A', email: 'a@x.com' });
     expect(post.status).toBe(404);
     const get = await request(app).get(`/api/events/${id}/registrations`);
     expect(get.status).toBe(404);
@@ -169,13 +194,18 @@ describe('stats & misc', () => {
   test('returns dashboard stats', async () => {
     const upcoming = await createEvent({ date: '2099-01-01' });
     await createEvent({ date: '2000-01-01' });
-    await request(app).post(`/api/events/${upcoming._id}/register`).send({ name: 'A', email: 'a@x.com' });
+    await request(app)
+      .post(`/api/events/${upcoming._id}/register`)
+      .send({ name: 'A', email: 'a@x.com' });
     const res = await request(app).get('/api/stats');
     expect(res.body).toEqual({ totalEvents: 2, totalRegistrations: 1, upcomingEvents: 1 });
   });
 
   test('invalid JSON returns 400 and unknown route 404', async () => {
-    const bad = await request(app).post('/api/events').set('Content-Type', 'application/json').send('{bad');
+    const bad = await request(app)
+      .post('/api/events')
+      .set('Content-Type', 'application/json')
+      .send('{bad');
     expect(bad.status).toBe(400);
     expect((await request(app).get('/api/nope')).status).toBe(404);
   });

@@ -10,7 +10,7 @@ const eventSchema = new mongoose.Schema(
     organizer: { type: String, required: true, trim: true, maxlength: 100 },
     capacity: { type: Number, required: true, min: 1 },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model('Event', eventSchema);
