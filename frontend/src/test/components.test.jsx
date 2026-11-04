@@ -4,7 +4,9 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import EventForm from '../components/EventForm.jsx';
 import RegistrationForm from '../components/RegistrationForm.jsx';
+import RegistrationList from '../components/RegistrationList.jsx';
 import EventCard from '../components/EventCard.jsx';
+import Navbar from '../components/Navbar.jsx';
 import EventsList from '../pages/EventsList.jsx';
 import EventDetails from '../pages/EventDetails.jsx';
 
@@ -13,6 +15,60 @@ function mockFetch(status, body) {
 }
 
 afterEach(() => vi.restoreAllMocks());
+
+describe('Navbar', () => {
+  test('renders brand link and desktop links', () => {
+    render(
+      <MemoryRouter>
+        <Navbar />
+      </MemoryRouter>
+    );
+    expect(screen.getByRole('link', { name: 'EventFlow' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'Events' })).toHaveAttribute('href', '/events');
+    expect(screen.getByRole('link', { name: 'New Event' })).toHaveAttribute('href', '/events/new');
+  });
+
+  test('toggles mobile navigation menu when toggle button is clicked', async () => {
+    render(
+      <MemoryRouter>
+        <Navbar />
+      </MemoryRouter>
+    );
+    const toggleButton = screen.getByRole('button', { name: /toggle navigation menu/i });
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
+
+    // Open mobile menu
+    await userEvent.click(toggleButton);
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'true');
+    const mobileMenu = document.getElementById('mobile-menu');
+    expect(mobileMenu).toBeInTheDocument();
+
+    // Close mobile menu
+    await userEvent.click(toggleButton);
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
+    expect(document.getElementById('mobile-menu')).not.toBeInTheDocument();
+  });
+
+  test('closes mobile navigation menu when a link inside it is clicked', async () => {
+    render(
+      <MemoryRouter>
+        <Navbar />
+      </MemoryRouter>
+    );
+    const toggleButton = screen.getByRole('button', { name: /toggle navigation menu/i });
+    await userEvent.click(toggleButton);
+
+    const mobileMenu = document.getElementById('mobile-menu');
+    expect(mobileMenu).toBeInTheDocument();
+
+    const mobileEventsLink = mobileMenu.querySelector('a[href="/events"]');
+    await userEvent.click(mobileEventsLink);
+
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
+    expect(document.getElementById('mobile-menu')).not.toBeInTheDocument();
+  });
+});
 
 describe('EventForm', () => {
   test('shows validation errors and does not submit an empty form', async () => {
@@ -70,6 +126,22 @@ describe('RegistrationForm', () => {
     await userEvent.type(screen.getByLabelText('Email'), 'asha@example.com');
     await userEvent.click(screen.getByRole('button', { name: 'Register' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('already registered');
+  });
+});
+
+describe('RegistrationList', () => {
+  test('renders responsive registration rows without horizontal overflow', () => {
+    const registrations = [
+      {
+        _id: 'reg-1',
+        name: 'Asha Sharma',
+        email: 'asha.sharma.verylongemailaddress@subdomain.example.com',
+        registeredAt: '2026-11-04T12:00:00.000Z',
+      },
+    ];
+    render(<RegistrationList registrations={registrations} />);
+    expect(screen.getByText('Asha Sharma')).toBeInTheDocument();
+    expect(screen.getByText('asha.sharma.verylongemailaddress@subdomain.example.com')).toBeInTheDocument();
   });
 });
 
