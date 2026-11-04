@@ -13,6 +13,8 @@ export default function EventDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [deleteError, setDeleteError] = useState(null);
+  const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(null);
 
   const event = useFetch(() => api.getEvent(id), [id]);
   const regs = useFetch(() => api.listRegistrations(id), [id]);
@@ -33,6 +35,15 @@ export default function EventDetails() {
       setDeleteError(err.message);
     }
   }
+    async function handleCopyLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setCopyError(null);
+    } catch {
+      setCopyError('Unable to copy the event link. Please copy it from your browser address bar.');
+    }
+  }
 
   function handleRegistered() {
     event.reload();
@@ -44,16 +55,27 @@ export default function EventDetails() {
       <section className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <h1 className="text-2xl font-bold">{e.title}</h1>
-          <div className="flex gap-2">
-            <Link to={`/events/${id}/edit`} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
-              Edit
-            </Link>
-            <button onClick={handleDelete} className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">
-              Delete
-            </button>
-          </div>
+          <div className="flex flex-wrap gap-2">
+  <Link to={`/events/${id}/edit`} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
+    Edit
+  </Link>
+
+  <button
+    onClick={handleCopyLink} className="rounded-md border border-blue-300 px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50"
+  >
+    {copied ? 'Link Copied!' : 'Copy Link'}
+  </button>
+
+  <button onClick={handleDelete} className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">
+    Delete
+  </button>
+</div>
         </div>
         {deleteError && <div className="mt-3"><ErrorMessage message={deleteError} /></div>}
+        {copyError && <p className="mt-3 text-sm text-red-600" role="alert">{copyError}</p>}
+        {copied && <p className="mt-3 text-sm text-green-600" role="status">Event link copied successfully!</p>}
+        
+        
         <p className="mt-3 text-slate-600">{e.description || 'No description provided.'}</p>
         <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
           <div><dt className="inline font-medium">Date: </dt><dd className="inline">{formatDate(e.date)}</dd></div>
