@@ -179,4 +179,38 @@ describe('stats & misc', () => {
     expect(bad.status).toBe(400);
     expect((await request(app).get('/api/nope')).status).toBe(404);
   });
+
+  test('rejects oversized JSON with 413', async () => {
+    const largeBody = JSON.stringify({
+      data: 'a'.repeat(110000),
+    });
+
+    const res = await request(app)
+      .post('/api/events')
+      .set('Content-Type', 'application/json')
+      .send(largeBody);
+
+    expect(res.status).toBe(413);
+    expect(res.body.error).toBe('Request body too large');
+  });
+
+  test('rejects unsupported content encoding with 415', async () => {
+    const res = await request(app)
+      .post('/api/events')
+      .set('Content-Type', 'application/json')
+      .set('Content-Encoding', 'unsupported')
+      .send('{"title":"Test"}');
+
+    expect(res.status).toBe(415);
+    expect(res.body.error).toBe('Unsupported content encoding');
+  });
+  test('rejects unsupported character set with 415', async () => {
+    const res = await request(app)
+      .post('/api/events')
+      .set('Content-Type', 'application/json; charset=unsupported')
+      .send('{"title":"Test"}');
+
+    expect(res.status).toBe(415);
+    expect(res.body.error).toBe('Unsupported character set');
+  });
 });
