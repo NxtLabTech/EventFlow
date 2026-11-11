@@ -163,6 +163,23 @@ describe('registrations', () => {
     const get = await request(app).get(`/api/events/${id}/registrations`);
     expect(get.status).toBe(404);
   });
+
+  test('cancels a registration successfully', async () => {
+    const event = await createEvent();
+    const regRes = await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: 'Asha', email: 'asha@example.com' });
+    expect(regRes.status).toBe(201);
+
+    const deleteRes = await request(app).delete(
+      `/api/events/${event._id}/registrations/${regRes.body._id}`
+    );
+    expect(deleteRes.status).toBe(200);
+
+    const listRes = await request(app).get(`/api/events/${event._id}/registrations`);
+    expect(listRes.status).toBe(200);
+    expect(listRes.body).toHaveLength(0);
+  });
 });
 
 describe('stats & misc', () => {

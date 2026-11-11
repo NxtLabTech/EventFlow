@@ -26,4 +26,18 @@ async function listRegistrations(req, res) {
   res.json(registrations);
 }
 
-module.exports = { registerParticipant, listRegistrations };
+async function cancelRegistration(req, res) {
+  const event = await findEventOr404(req.params.eventId);
+  const { registrationId } = req.params;
+
+  const registration = await Registration.findOneAndDelete({
+    _id: registrationId,
+    eventId: event._id,
+  });
+
+  if (!registration) throw new HttpError(404, 'Registration not found');
+
+  res.json({ message: 'Registration cancelled' });
+}
+
+module.exports = { registerParticipant, listRegistrations, cancelRegistration };

@@ -35,6 +35,10 @@ async function request(path, options = {}) {
 const send = (method, path, data) =>
   request(path, { method, body: data === undefined ? undefined : JSON.stringify(data) });
 
+export function cancelRegistration(eventId, registrationId) {
+  return send('DELETE', `/events/${eventId}/registrations/${registrationId}`);
+}
+
 export const api = {
   getStats: () => request('/stats'),
   listEvents: () => request('/events'),
@@ -44,4 +48,6 @@ export const api = {
   deleteEvent: (id) => send('DELETE', `/events/${id}`),
   listRegistrations: (id) => request(`/events/${id}/registrations`),
   register: (id, data) => send('POST', `/events/${id}/register`, data),
+  cancelRegistration: (eventId, registrationId) =>
+    send('DELETE', `/events/${eventId}/registrations/${registrationId}`),
 };
