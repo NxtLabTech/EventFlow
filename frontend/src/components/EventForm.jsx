@@ -58,7 +58,7 @@ export default function EventForm({ initialValues, onSubmit, submitLabel = 'Save
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-4 rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
+    <form onSubmit={handleSubmit} noValidate className="space-y-4 rounded-lg bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-6">
       {formError && <ErrorMessage message={formError} />}
       <FormField label="Title" name="title" value={values.title} onChange={handleChange} error={errors.title} />
       <FormField
@@ -90,7 +90,7 @@ export default function EventForm({ initialValues, onSubmit, submitLabel = 'Save
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+        className="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 sm:w-auto sm:py-2"
       >
         {submitting ? 'Saving...' : submitLabel}
       </button>

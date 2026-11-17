@@ -8,7 +8,7 @@ export default function FormField({ label, name, error, as: Tag = 'input', ...pr
         id={name}
         name={name}
         aria-invalid={Boolean(error)}
-        className={`mt-1 block w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+        className={`mt-1 block w-full rounded-md border px-3 py-2 text-base shadow-sm sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
           error ? 'border-red-400' : 'border-slate-300'
         }`}
         {...props}

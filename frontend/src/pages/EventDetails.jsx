@@ -41,14 +41,14 @@ export default function EventDetails() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
+      <section className="rounded-lg bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold">{e.title}</h1>
+          <h1 className="min-w-0 text-xl font-bold sm:text-2xl">{e.title}</h1>
           <div className="flex gap-2">
-            <Link to={`/events/${id}/edit`} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
+            <Link to={`/events/${id}/edit`} className="rounded-md border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50">
               Edit
             </Link>
-            <button onClick={handleDelete} className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">
+            <button onClick={handleDelete} className="rounded-md border border-red-300 px-4 py-2 text-sm text-red-600 hover:bg-red-50">
               Delete
             </button>
           </div>
