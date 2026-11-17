@@ -71,6 +71,20 @@ describe('events', () => {
     expect(res.body.map((e) => e.title)).toEqual(['Sooner', 'Later']);
   });
 
+  test('includes the registration count for each event in the list', async () => {
+    const busy = await createEvent({ title: 'Busy', date: '2099-02-01', capacity: 5 });
+    await createEvent({ title: 'Quiet', date: '2099-03-01', capacity: 5 });
+    await request(app).post(`/api/events/${busy._id}/register`).send({ name: 'A', email: 'a@example.com' });
+    await request(app).post(`/api/events/${busy._id}/register`).send({ name: 'B', email: 'b@example.com' });
+
+    const res = await request(app).get('/api/events');
+    expect(res.status).toBe(200);
+    expect(res.body.map((e) => [e.title, e.registrationCount, e.capacity])).toEqual([
+      ['Busy', 2, 5],
+      ['Quiet', 0, 5],
+    ]);
+  });
+
   test('gets an event by id with registration count', async () => {
     const event = await createEvent();
     const res = await request(app).get(`/api/events/${event._id}`);
