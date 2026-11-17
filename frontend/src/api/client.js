@@ -37,7 +37,10 @@ const send = (method, path, data) =>
 
 export const api = {
   getStats: () => request('/stats'),
-  listEvents: () => request('/events'),
+  listEvents: (search = '') => {
+    const term = search.trim();
+    return request(term ? `/events?${new URLSearchParams({ search: term })}` : '/events');
+  },
   getEvent: (id) => request(`/events/${id}`),
   createEvent: (data) => send('POST', '/events', data),
   updateEvent: (id, data) => send('PUT', `/events/${id}`, data),

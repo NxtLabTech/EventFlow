@@ -71,6 +71,57 @@ describe('events', () => {
     expect(res.body.map((e) => e.title)).toEqual(['Sooner', 'Later']);
   });
 
+  describe('search', () => {
+    const titles = (res) => res.body.map((e) => e.title);
+
+    beforeEach(async () => {
+      await createEvent({ title: 'Node Meetup', date: '2099-02-01' });
+      await createEvent({ title: 'React Workshop', date: '2099-03-01' });
+      await createEvent({ title: 'Advanced node.js (C++ addons)', date: '2099-04-01' });
+    });
+
+    test('returns events whose title contains the term, case-insensitively', async () => {
+      const res = await request(app).get('/api/events').query({ search: 'NODE' });
+      expect(res.status).toBe(200);
+      expect(titles(res)).toEqual(['Node Meetup', 'Advanced node.js (C++ addons)']);
+    });
+
+    test('trims the term', async () => {
+      const res = await request(app).get('/api/events').query({ search: '  workshop  ' });
+      expect(titles(res)).toEqual(['React Workshop']);
+    });
+
+    test('returns an empty list when nothing matches', async () => {
+      const res = await request(app).get('/api/events').query({ search: 'python' });
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual([]);
+    });
+
+    test('treats regex characters literally', async () => {
+      expect(titles(await request(app).get('/api/events').query({ search: 'C++' }))).toEqual([
+        'Advanced node.js (C++ addons)',
+      ]);
+      expect(titles(await request(app).get('/api/events').query({ search: '.*' }))).toEqual([]);
+    });
+
+    test('returns every event for a blank search', async () => {
+      const res = await request(app).get('/api/events').query({ search: '   ' });
+      expect(res.body).toHaveLength(3);
+    });
+
+    test('ignores a repeated (array) search parameter instead of crashing', async () => {
+      const res = await request(app).get('/api/events?search=a&search=b');
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(3);
+    });
+
+    test('rejects an overly long search term with 400', async () => {
+      const res = await request(app).get('/api/events').query({ search: 'x'.repeat(101) });
+      expect(res.status).toBe(400);
+      expect(res.body.details.search).toBeDefined();
+    });
+  });
+
   test('gets an event by id with registration count', async () => {
     const event = await createEvent();
     const res = await request(app).get(`/api/events/${event._id}`);

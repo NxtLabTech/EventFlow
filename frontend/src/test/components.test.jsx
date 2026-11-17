@@ -93,6 +93,46 @@ describe('EventsList', () => {
     render(<MemoryRouter><EventsList /></MemoryRouter>);
     expect(await screen.findByText('Node Meetup')).toBeInTheDocument();
   });
+
+  describe('search', () => {
+    const all = [
+      { _id: '1', title: 'Node Meetup', date: '2099-01-15T00:00:00.000Z', time: '18:30', location: 'L', organizer: 'O', capacity: 10 },
+      { _id: '2', title: 'React Workshop', date: '2099-02-15T00:00:00.000Z', time: '10:00', location: 'L', organizer: 'O', capacity: 10 },
+    ];
+
+    function mockSearchApi() {
+      globalThis.fetch = vi.fn(async (url) => {
+        const term = new URL(url, 'http://x').searchParams.get('search')?.toLowerCase();
+        const body = term ? all.filter((e) => e.title.toLowerCase().includes(term)) : all;
+        return { ok: true, status: 200, json: async () => body };
+      });
+    }
+
+    test('sends the search term to the backend and shows matching events', async () => {
+      mockSearchApi();
+      render(<MemoryRouter><EventsList /></MemoryRouter>);
+      expect(await screen.findByText('React Workshop')).toBeInTheDocument();
+
+      await userEvent.type(screen.getByPlaceholderText('Search events...'), 'node');
+      await waitFor(() => expect(screen.queryByText('React Workshop')).not.toBeInTheDocument());
+      expect(screen.getByText('Node Meetup')).toBeInTheDocument();
+      expect(globalThis.fetch).toHaveBeenLastCalledWith('/api/events?search=node', expect.anything());
+    });
+
+    test('shows a no-results message that can clear the search', async () => {
+      mockSearchApi();
+      render(<MemoryRouter><EventsList /></MemoryRouter>);
+      await screen.findByText('Node Meetup');
+
+      await userEvent.type(screen.getByPlaceholderText('Search events...'), 'python');
+      expect(await screen.findByText('No events match "python"')).toBeInTheDocument();
+      expect(screen.queryByText('No events yet')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+      expect(await screen.findByText('Node Meetup')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Search events...')).toHaveValue('');
+    });
+  });
 });
 
 describe('EventCard', () => {
