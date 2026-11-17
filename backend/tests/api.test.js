@@ -57,6 +57,56 @@ describe('events', () => {
     expect(Object.keys(res.body.details)).toEqual(expect.arrayContaining(['title', 'date', 'capacity']));
   });
 
+  describe('capacity validation', () => {
+    test.each([
+      ['zero', 0, 'capacity must be greater than 0'],
+      ['a negative number', -5, 'capacity must be greater than 0'],
+      ['a negative numeric string', '-3', 'capacity must be greater than 0'],
+      ['an empty string', '', 'capacity is required'],
+      ['a blank string', '   ', 'capacity is required'],
+      ['null', null, 'capacity is required'],
+      ['a non-numeric string', 'abc', 'capacity must be a number'],
+      ['exponent notation', '1e2', 'capacity must be a number'],
+      ['a hex string', '0x10', 'capacity must be a number'],
+      ['a boolean', true, 'capacity must be a number'],
+      ['an array', [5], 'capacity must be a number'],
+      ['a decimal', 2.5, 'capacity must be a whole number'],
+      ['a decimal string', '2.5', 'capacity must be a whole number'],
+      ['a value above the maximum', 100001, 'capacity must be at most 100000'],
+    ])('rejects %s with 400', async (_label, capacity, message) => {
+      const res = await request(app).post('/api/events').send(validEvent({ capacity }));
+      expect(res.status).toBe(400);
+      expect(res.body.details).toEqual({ capacity: message });
+    });
+
+    test('rejects a missing capacity', async () => {
+      const body = validEvent();
+      delete body.capacity;
+      const res = await request(app).post('/api/events').send(body);
+      expect(res.status).toBe(400);
+      expect(res.body.details).toEqual({ capacity: 'capacity is required' });
+    });
+
+    test.each([
+      [1, 1],
+      [250, 250],
+      [100000, 100000],
+      ['42', 42],
+      [' 7 ', 7],
+    ])('accepts %j', async (capacity, expected) => {
+      const res = await request(app).post('/api/events').send(validEvent({ capacity }));
+      expect(res.status).toBe(201);
+      expect(res.body.capacity).toBe(expected);
+    });
+
+    test('rejects an invalid capacity on update too', async () => {
+      const event = await createEvent();
+      const res = await request(app).put(`/api/events/${event._id}`).send(validEvent({ capacity: -1 }));
+      expect(res.status).toBe(400);
+      expect(res.body.details).toEqual({ capacity: 'capacity must be greater than 0' });
+    });
+  });
+
   test('rejects overly long title', async () => {
     const res = await request(app).post('/api/events').send(validEvent({ title: 'x'.repeat(101) }));
     expect(res.status).toBe(400);
