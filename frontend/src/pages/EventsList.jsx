@@ -27,7 +27,7 @@ export default function EventsList() {
         </EmptyState>
       )}
       {events && events.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className=" grid-cols-1:grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((e) => (
             <EventCard key={e._id} event={e} />
           ))}
