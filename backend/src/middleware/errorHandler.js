@@ -15,6 +15,19 @@ function errorHandler(err, req, res, next) {
     if (err.details) body.details = err.details;
     return res.status(err.status).json(body);
   }
+  if (err.name === 'ValidationError') {
+    const details = {};
+    for (const [key, error] of Object.entries(err.errors || {})) {
+      details[key] = error.message;
+    }
+    return res.status(400).json({ error: 'Validation failed', details });
+  }
+  if (err.name === 'CastError') {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: { [err.path]: `Invalid value for ${err.path}` },
+    });
+  }
   if (err.code === 11000) {
     return res.status(409).json({ error: 'Duplicate entry' });
   }
