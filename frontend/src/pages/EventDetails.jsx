@@ -25,7 +25,7 @@ export default function EventDetails() {
   const isFull = e.registrationCount >= e.capacity;
 
   async function handleDelete() {
-    if (!window.confirm(`Delete "${e.title}" and all its registrations?`)) return;
+    if (!window.Are you sure you want to delete this event(`Delete "${e.title}" and all its registrations?`)) return;
     try {
       await api.deleteEvent(id);
       navigate('/events');
