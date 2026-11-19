@@ -19,8 +19,10 @@ function parseDate(str) {
 
 function requiredText(body, field, max, errors, out) {
   const raw = body[field];
-  if (!isString(raw) || raw.trim() === '') {
+  if (raw === undefined || raw === null || (isString(raw) && raw.trim() === '')) {
     errors[field] = `${field} is required`;
+  } else if (!isString(raw)) {
+    errors[field] = `${field} must be a string`;
   } else if (raw.trim().length > max) {
     errors[field] = `${field} must be at most ${max} characters`;
   } else {
@@ -29,7 +31,14 @@ function requiredText(body, field, max, errors, out) {
 }
 
 function validateEventInput(input) {
-  const body = input && typeof input === 'object' ? input : {};
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return {
+      errors: { body: 'Request body must be a JSON object' },
+      value: {},
+    };
+  }
+
+  const body = input;
   const errors = {};
   const value = {};
 
@@ -37,15 +46,17 @@ function validateEventInput(input) {
   requiredText(body, 'location', 200, errors, value);
   requiredText(body, 'organizer', 100, errors, value);
 
-  if (body.description === undefined || body.description === null) {
+  if (body.description === undefined || body.description === null || body.description === '') {
     value.description = '';
-  } else if (!isString(body.description) || body.description.trim().length > 2000) {
-    errors.description = 'description must be text of at most 2000 characters';
+  } else if (!isString(body.description)) {
+    errors.description = 'description must be a string';
+  } else if (body.description.trim().length > 2000) {
+    errors.description = 'description must be at most 2000 characters';
   } else {
     value.description = body.description.trim();
   }
 
-  if (body.date === undefined || body.date === '') {
+  if (body.date === undefined || body.date === null || (isString(body.date) && body.date.trim() === '')) {
     errors.date = 'date is required';
   } else {
     const d = parseDate(body.date);
@@ -53,7 +64,7 @@ function validateEventInput(input) {
     else errors.date = 'date must be a valid date in YYYY-MM-DD format';
   }
 
-  if (body.time === undefined || body.time === '') {
+  if (body.time === undefined || body.time === null || (isString(body.time) && body.time.trim() === '')) {
     errors.time = 'time is required';
   } else if (!isString(body.time) || !TIME_RE.test(body.time)) {
     errors.time = 'time must be in HH:MM (24-hour) format';
@@ -63,9 +74,9 @@ function validateEventInput(input) {
 
   const cap = body.capacity;
   const capNum = typeof cap === 'string' && cap.trim() !== '' ? Number(cap) : cap;
-  if (cap === undefined || cap === null || cap === '') {
+  if (cap === undefined || cap === null || cap === '' || (typeof cap === 'string' && cap.trim() === '')) {
     errors.capacity = 'capacity is required';
-  } else if (!Number.isInteger(capNum) || capNum < 1 || capNum > 100000) {
+  } else if (typeof cap === 'boolean' || !Number.isInteger(capNum) || capNum < 1 || capNum > 100000) {
     errors.capacity = 'capacity must be a positive whole number (max 100000)';
   } else {
     value.capacity = capNum;

@@ -63,6 +63,132 @@ describe('events', () => {
     expect(res.body.details.title).toBeDefined();
   });
 
+  test('creates an event without optional description', async () => {
+    const data = validEvent();
+    delete data.description;
+    const res = await request(app).post('/api/events').send(data);
+    expect(res.status).toBe(201);
+    expect(res.body.description).toBe('');
+    expect(await Event.countDocuments()).toBe(1);
+  });
+
+  test('rejects empty payload and reports all missing required fields', async () => {
+    const res = await request(app).post('/api/events').send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Validation failed');
+    expect(res.body.details).toEqual({
+      title: 'title is required',
+      location: 'location is required',
+      organizer: 'organizer is required',
+      date: 'date is required',
+      time: 'time is required',
+      capacity: 'capacity is required',
+    });
+    expect(await Event.countDocuments()).toBe(0);
+  });
+
+  test('rejects missing individual required fields and does not save to MongoDB', async () => {
+    const fields = ['title', 'date', 'time', 'location', 'organizer', 'capacity'];
+    for (const field of fields) {
+      const payload = validEvent();
+      delete payload[field];
+      const res = await request(app).post('/api/events').send(payload);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Validation failed');
+      expect(res.body.details[field]).toMatch(new RegExp(`${field} is required`, 'i'));
+      expect(await Event.countDocuments()).toBe(0);
+    }
+  });
+
+  test('rejects whitespace-only text fields', async () => {
+    for (const field of ['title', 'location', 'organizer']) {
+      const res = await request(app).post('/api/events').send(validEvent({ [field]: '   ' }));
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Validation failed');
+      expect(res.body.details[field]).toBe(`${field} is required`);
+      expect(await Event.countDocuments()).toBe(0);
+    }
+  });
+
+  test('rejects non-object array payload', async () => {
+    const res = await request(app).post('/api/events').send([validEvent()]);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Validation failed');
+    expect(res.body.details.body).toBeDefined();
+    expect(await Event.countDocuments()).toBe(0);
+  });
+
+  test('rejects non-string types for string fields', async () => {
+    const res = await request(app)
+      .post('/api/events')
+      .send(validEvent({ title: 12345, location: true, organizer: { name: 'Org' }, description: 999 }));
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Validation failed');
+    expect(res.body.details.title).toBe('title must be a string');
+    expect(res.body.details.location).toBe('location must be a string');
+    expect(res.body.details.organizer).toBe('organizer must be a string');
+    expect(res.body.details.description).toBe('description must be a string');
+    expect(await Event.countDocuments()).toBe(0);
+  });
+
+  test('rejects fields exceeding maximum allowed lengths', async () => {
+    const res = await request(app).post('/api/events').send(
+      validEvent({
+        location: 'l'.repeat(201),
+        organizer: 'o'.repeat(101),
+        description: 'd'.repeat(2001),
+      })
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Validation failed');
+    expect(res.body.details.location).toBe('location must be at most 200 characters');
+    expect(res.body.details.organizer).toBe('organizer must be at most 100 characters');
+    expect(res.body.details.description).toBe('description must be at most 2000 characters');
+    expect(await Event.countDocuments()).toBe(0);
+  });
+
+  test('rejects invalid date values and formats', async () => {
+    const invalidDates = ['not-a-date', '2026-02-31', '2026-13-01', '2026/01/15', '01-15-2099', 12345];
+    for (const badDate of invalidDates) {
+      const res = await request(app).post('/api/events').send(validEvent({ date: badDate }));
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Validation failed');
+      expect(res.body.details.date).toBe('date must be a valid date in YYYY-MM-DD format');
+      expect(await Event.countDocuments()).toBe(0);
+    }
+  });
+
+  test('rejects invalid time formats', async () => {
+    const invalidTimes = ['25:00', '12:60', '9:30', 'noon', '12:00:00', 1830];
+    for (const badTime of invalidTimes) {
+      const res = await request(app).post('/api/events').send(validEvent({ time: badTime }));
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Validation failed');
+      expect(res.body.details.time).toBe('time must be in HH:MM (24-hour) format');
+      expect(await Event.countDocuments()).toBe(0);
+    }
+  });
+
+  test('rejects invalid capacity values (zero, negative, decimal, non-numeric, overflow)', async () => {
+    const invalidCapacities = [0, -5, 1.5, 'abc', 100001, true];
+    for (const badCap of invalidCapacities) {
+      const res = await request(app).post('/api/events').send(validEvent({ capacity: badCap }));
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Validation failed');
+      expect(res.body.details.capacity).toBe('capacity must be a positive whole number (max 100000)');
+      expect(await Event.countDocuments()).toBe(0);
+    }
+  });
+
+  test('ensures invalid event data is never saved in MongoDB when other events exist', async () => {
+    await createEvent({ title: 'Existing Event' });
+    expect(await Event.countDocuments()).toBe(1);
+
+    const res = await request(app).post('/api/events').send(validEvent({ title: '', capacity: -1 }));
+    expect(res.status).toBe(400);
+    expect(await Event.countDocuments()).toBe(1);
+  });
+
   test('lists events sorted by date', async () => {
     await createEvent({ title: 'Later', date: '2099-05-01' });
     await createEvent({ title: 'Sooner', date: '2099-02-01' });
@@ -178,5 +304,35 @@ describe('stats & misc', () => {
     const bad = await request(app).post('/api/events').set('Content-Type', 'application/json').send('{bad');
     expect(bad.status).toBe(400);
     expect((await request(app).get('/api/nope')).status).toBe(404);
+  });
+
+  test('errorHandler formats Mongoose ValidationError and CastError as 400', () => {
+    const { errorHandler } = require('../src/middleware/errorHandler.js');
+    const resVal = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
+    };
+    const validationError = new mongoose.Error.ValidationError();
+    validationError.errors = {
+      title: new mongoose.Error.ValidatorError({ message: 'Title is required', path: 'title' }),
+    };
+    errorHandler(validationError, {}, resVal, () => {});
+    expect(resVal.status).toHaveBeenCalledWith(400);
+    expect(resVal.json).toHaveBeenCalledWith({
+      error: 'Validation failed',
+      details: { title: 'Title is required' },
+    });
+
+    const resCast = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
+    };
+    const castError = new mongoose.Error.CastError('number', 'abc', 'capacity');
+    errorHandler(castError, {}, resCast, () => {});
+    expect(resCast.status).toHaveBeenCalledWith(400);
+    expect(resCast.json).toHaveBeenCalledWith({
+      error: 'Validation failed',
+      details: { capacity: 'Invalid value for capacity' },
+    });
   });
 });
