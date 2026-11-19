@@ -26,6 +26,7 @@ def make_db():
             "updatedAt": datetime(2026, 1, 2, tzinfo=timezone.utc),
         }
     )
+    # hj
     db.registrations.insert_many(
         [
             {"name": "Asha", "email": "asha@example.com", "eventId": event_id, "registeredAt": datetime(2026, 2, 1, tzinfo=timezone.utc)},
