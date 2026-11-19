@@ -11,9 +11,9 @@ export default function EventsList() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Events</h1>
-        <Link to="/events/new" className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold">Events</h1>
+        <Link to="/events/new" className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2.5 sm:py-2 text-sm font-medium text-white hover:bg-indigo-700 min-h-[40px] shrink-0">
           New Event
         </Link>
       </div>
@@ -27,7 +27,7 @@ export default function EventsList() {
         </EmptyState>
       )}
       {events && events.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {events.map((e) => (
             <EventCard key={e._id} event={e} />
           ))}

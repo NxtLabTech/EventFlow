@@ -58,7 +58,7 @@ export default function EventForm({ initialValues, onSubmit, submitLabel = 'Save
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-4 rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
+    <form onSubmit={handleSubmit} noValidate className="space-y-4 rounded-lg bg-white p-4 sm:p-6 shadow-sm ring-1 ring-slate-200">
       {formError && <ErrorMessage message={formError} />}
       <FormField label="Title" name="title" value={values.title} onChange={handleChange} error={errors.title} />
       <FormField
@@ -70,12 +70,12 @@ export default function EventForm({ initialValues, onSubmit, submitLabel = 'Save
         onChange={handleChange}
         error={errors.description}
       />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Date" name="date" type="date" value={values.date} onChange={handleChange} error={errors.date} />
         <FormField label="Time" name="time" type="time" value={values.time} onChange={handleChange} error={errors.time} />
       </div>
       <FormField label="Location" name="location" value={values.location} onChange={handleChange} error={errors.location} />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="Organizer" name="organizer" value={values.organizer} onChange={handleChange} error={errors.organizer} />
         <FormField
           label="Capacity"
@@ -90,7 +90,7 @@ export default function EventForm({ initialValues, onSubmit, submitLabel = 'Save
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+        className="w-full sm:w-auto inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2.5 sm:py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 min-h-[42px] sm:min-h-0"
       >
         {submitting ? 'Saving...' : submitLabel}
       </button>

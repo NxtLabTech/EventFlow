@@ -11,7 +11,7 @@ export default function App() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      <main className="mx-auto max-w-5xl w-full px-4 sm:px-6 py-6 sm:py-8">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/events" element={<EventsList />} />

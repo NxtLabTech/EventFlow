@@ -41,26 +41,26 @@ export default function EventDetails() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <h1 className="text-2xl font-bold">{e.title}</h1>
-          <div className="flex gap-2">
-            <Link to={`/events/${id}/edit`} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">
+      <section className="rounded-lg bg-white p-4 sm:p-6 shadow-sm ring-1 ring-slate-200 min-w-0">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <h1 className="text-xl sm:text-2xl font-bold break-words min-w-0 flex-1">{e.title}</h1>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link to={`/events/${id}/edit`} className="inline-flex items-center justify-center rounded-md border border-slate-300 px-3 py-2 sm:py-1.5 text-sm hover:bg-slate-50 min-h-[38px] sm:min-h-0">
               Edit
             </Link>
-            <button onClick={handleDelete} className="rounded-md border border-red-300 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50">
+            <button onClick={handleDelete} className="inline-flex items-center justify-center rounded-md border border-red-300 px-3 py-2 sm:py-1.5 text-sm text-red-600 hover:bg-red-50 min-h-[38px] sm:min-h-0">
               Delete
             </button>
           </div>
         </div>
         {deleteError && <div className="mt-3"><ErrorMessage message={deleteError} /></div>}
-        <p className="mt-3 text-slate-600">{e.description || 'No description provided.'}</p>
+        <p className="mt-3 text-slate-600 break-words">{e.description || 'No description provided.'}</p>
         <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-          <div><dt className="inline font-medium">Date: </dt><dd className="inline">{formatDate(e.date)}</dd></div>
-          <div><dt className="inline font-medium">Time: </dt><dd className="inline">{e.time}</dd></div>
-          <div><dt className="inline font-medium">Location: </dt><dd className="inline">{e.location}</dd></div>
-          <div><dt className="inline font-medium">Organizer: </dt><dd className="inline">{e.organizer}</dd></div>
-          <div>
+          <div className="break-words"><dt className="inline font-medium">Date: </dt><dd className="inline">{formatDate(e.date)}</dd></div>
+          <div className="break-words"><dt className="inline font-medium">Time: </dt><dd className="inline">{e.time}</dd></div>
+          <div className="break-words"><dt className="inline font-medium">Location: </dt><dd className="inline">{e.location}</dd></div>
+          <div className="break-words"><dt className="inline font-medium">Organizer: </dt><dd className="inline">{e.organizer}</dd></div>
+          <div className="break-words">
             <dt className="inline font-medium">Registrations: </dt>
             <dd className="inline">{e.registrationCount} / {e.capacity}{isFull && ' (full)'}</dd>
           </div>

@@ -12,7 +12,7 @@ export default function CreateEvent() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">Create event</h1>
+      <h1 className="mb-6 text-xl sm:text-2xl font-bold">Create event</h1>
       <EventForm onSubmit={handleSubmit} submitLabel="Create event" />
     </div>
   );

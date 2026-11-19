@@ -21,7 +21,7 @@ export default function RegistrationForm({ eventId, disabled, onRegistered }) {
 
     const found = {};
     if (!values.name.trim()) found.name = 'Name is required';
-    if (!EMAIL_RE.test(values.email.trim())) found.email = 'Enter a valid email address';
+    if (!EMAIL_RE.test(values.email.trim())) found.email = 'Please enter a valid email address.';
     setErrors(found);
     if (Object.keys(found).length) return;
 
@@ -40,7 +40,7 @@ export default function RegistrationForm({ eventId, disabled, onRegistered }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-4 rounded-lg bg-white p-6 shadow-sm ring-1 ring-slate-200">
+    <form onSubmit={handleSubmit} noValidate className="space-y-4 rounded-lg bg-white p-4 sm:p-6 shadow-sm ring-1 ring-slate-200">
       <h2 className="text-lg font-semibold">Register</h2>
       {success && (
         <p role="status" className="rounded-md bg-green-50 p-3 text-sm text-green-700">
@@ -53,7 +53,7 @@ export default function RegistrationForm({ eventId, disabled, onRegistered }) {
       <button
         type="submit"
         disabled={disabled || submitting}
-        className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+        className="w-full sm:w-auto inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2.5 sm:py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 min-h-[42px] sm:min-h-0"
       >
         {submitting ? 'Registering...' : 'Register'}
       </button>

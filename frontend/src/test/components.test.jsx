@@ -5,6 +5,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import EventForm from '../components/EventForm.jsx';
 import RegistrationForm from '../components/RegistrationForm.jsx';
 import EventCard from '../components/EventCard.jsx';
+import Navbar from '../components/Navbar.jsx';
 import EventsList from '../pages/EventsList.jsx';
 import EventDetails from '../pages/EventDetails.jsx';
 
@@ -48,8 +49,36 @@ describe('RegistrationForm', () => {
     await userEvent.type(screen.getByLabelText('Name'), 'Asha');
     await userEvent.type(screen.getByLabelText('Email'), 'not-an-email');
     await userEvent.click(screen.getByRole('button', { name: 'Register' }));
-    expect(screen.getByText('Enter a valid email address')).toBeInTheDocument();
+    expect(screen.getByText('Please enter a valid email address.')).toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test('rejects various invalid email formats without calling the API', async () => {
+    mockFetch(201, {});
+    const invalidEmails = ['plainaddress', '@missingusername.com', 'username@.com', 'username@domain', 'missing-at-sign.com', '   '];
+    for (const invalidEmail of invalidEmails) {
+      const { unmount } = render(<RegistrationForm eventId="abc" />);
+      await userEvent.type(screen.getByLabelText('Name'), 'Asha');
+      if (invalidEmail.trim()) {
+        await userEvent.type(screen.getByLabelText('Email'), invalidEmail);
+      }
+      await userEvent.click(screen.getByRole('button', { name: 'Register' }));
+      expect(screen.getByText('Please enter a valid email address.')).toBeInTheDocument();
+      expect(fetch).not.toHaveBeenCalled();
+      unmount();
+    }
+  });
+
+  test('submits successfully with a valid email address', async () => {
+    mockFetch(201, { _id: '1' });
+    const onRegistered = vi.fn();
+    render(<RegistrationForm eventId="abc" onRegistered={onRegistered} />);
+    await userEvent.type(screen.getByLabelText('Name'), 'Asha');
+    await userEvent.type(screen.getByLabelText('Email'), 'asha.doe+tag@example.com');
+    await userEvent.click(screen.getByRole('button', { name: 'Register' }));
+    expect(await screen.findByText('Registration successful!')).toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(onRegistered).toHaveBeenCalled();
   });
 
   test('shows success message after registering', async () => {
@@ -136,5 +165,24 @@ describe('EventDetails', () => {
     expect(await screen.findByText('Registration successful!')).toBeInTheDocument();
     expect(await screen.findByText('asha@example.com')).toBeInTheDocument();
     expect(screen.getByText('Registration successful!')).toBeInTheDocument();
+  });
+});
+
+describe('Navbar', () => {
+  test('renders navigation links and toggles mobile menu', async () => {
+    render(
+      <MemoryRouter>
+        <Navbar />
+      </MemoryRouter>
+    );
+
+    const toggleButton = screen.getByRole('button', { name: /toggle navigation/i });
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
+
+    await userEvent.click(toggleButton);
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'true');
+
+    await userEvent.click(toggleButton);
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
   });
 });
