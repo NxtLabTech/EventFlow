@@ -8,7 +8,7 @@ from django.test import TestCase
 from .models import Event, Registration
 from .sync import sync_from_mongo
 
-
+# hfjk
 def make_db():
     db = mongomock.MongoClient().eventflow
     event_id = ObjectId()
