@@ -13,6 +13,8 @@ export default function EventDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [deleteError, setDeleteError] = useState(null);
+  const [cancelMessage, setCancelMessage] = useState(null);
+  const [cancelError, setCancelError] = useState(null);
 
   const event = useFetch(() => api.getEvent(id), [id]);
   const regs = useFetch(() => api.listRegistrations(id), [id]);
@@ -35,8 +37,23 @@ export default function EventDetails() {
   }
 
   function handleRegistered() {
+    setCancelMessage(null);
+    setCancelError(null);
     event.reload();
     regs.reload();
+  }
+
+  async function handleCancel(email) {
+    setCancelMessage(null);
+    setCancelError(null);
+    try {
+      const res = await api.cancelRegistration(id, { email });
+      setCancelMessage(res?.message || 'Registration cancelled successfully');
+      event.reload();
+      regs.reload();
+    } catch (err) {
+      setCancelError(err.message);
+    }
   }
 
   return (
@@ -72,9 +89,19 @@ export default function EventDetails() {
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">Registered participants</h2>
+        {cancelMessage && (
+          <p role="status" className="mb-3 rounded-md bg-green-50 p-3 text-sm text-green-700">
+            {cancelMessage}
+          </p>
+        )}
+        {cancelError && (
+          <div className="mb-3">
+            <ErrorMessage message={cancelError} />
+          </div>
+        )}
         {regs.loading && <Loading />}
         {regs.error && <ErrorMessage message={regs.error.message} onRetry={regs.reload} />}
-        {regs.data && <RegistrationList registrations={regs.data} />}
+        {regs.data && <RegistrationList registrations={regs.data} onCancel={handleCancel} />}
       </section>
     </div>
   );

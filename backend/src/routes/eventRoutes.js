@@ -14,6 +14,15 @@ router
   .delete(events.deleteEvent);
 
 router.post('/:eventId/register', validateObjectId('eventId'), registrations.registerParticipant);
-router.get('/:eventId/registrations', validateObjectId('eventId'), registrations.listRegistrations);
+router.delete('/:eventId/register', validateObjectId('eventId'), registrations.cancelRegistration);
+router.post('/:eventId/cancel', validateObjectId('eventId'), registrations.cancelRegistration);
+router.delete('/:eventId/cancel', validateObjectId('eventId'), registrations.cancelRegistration);
+router
+  .route('/:eventId/registrations')
+  .all(validateObjectId('eventId'))
+  .get(registrations.listRegistrations)
+  .delete(registrations.cancelRegistration);
+router.post('/:eventId/registrations/cancel', validateObjectId('eventId'), registrations.cancelRegistration);
+router.delete('/:eventId/registrations/:email', validateObjectId('eventId'), registrations.cancelRegistration);
 
 module.exports = router;

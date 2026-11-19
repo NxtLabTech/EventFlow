@@ -12,7 +12,7 @@ const mongoose = require('mongoose');
 let mongod;
 
 beforeAll(async () => {
-  mongod = await MongoMemoryServer.create();
+  mongod = await MongoMemoryServer.create({ binary: { version: '7.0.14' } });
   await mongoose.connect(mongod.getUri());
   await Registration.init(); // make sure the unique index exists
 });
@@ -162,6 +162,76 @@ describe('registrations', () => {
     expect(post.status).toBe(404);
     const get = await request(app).get(`/api/events/${id}/registrations`);
     expect(get.status).toBe(404);
+  });
+
+  test('successfully cancels a registration and updates available event capacity', async () => {
+    const event = await createEvent({ capacity: 1 });
+    await request(app).post(`/api/events/${event._id}/register`).send({ name: 'Asha', email: 'asha@example.com' });
+
+    // Event should now be full
+    const fullRes = await request(app).post(`/api/events/${event._id}/register`).send({ name: 'Bhavna', email: 'bhavna@example.com' });
+    expect(fullRes.status).toBe(409);
+
+    // Cancel registration using email (case-insensitive)
+    const cancelRes = await request(app).post(`/api/events/${event._id}/cancel`).send({ email: 'Asha@Example.com' });
+    expect(cancelRes.status).toBe(200);
+    expect(cancelRes.body.message).toMatch(/cancelled/i);
+
+    // Registration should be deleted from DB
+    expect(await Registration.countDocuments({ eventId: event._id })).toBe(0);
+
+    // Event registration count should now be 0
+    const eventRes = await request(app).get(`/api/events/${event._id}`);
+    expect(eventRes.status).toBe(200);
+    expect(eventRes.body.registrationCount).toBe(0);
+
+    // Capacity has freed up: new registration now succeeds
+    const newReg = await request(app).post(`/api/events/${event._id}/register`).send({ name: 'Bhavna', email: 'bhavna@example.com' });
+    expect(newReg.status).toBe(201);
+    expect(await Registration.countDocuments({ eventId: event._id })).toBe(1);
+  });
+
+  test('returns 404 when registration does not exist', async () => {
+    const event = await createEvent();
+    const res = await request(app).post(`/api/events/${event._id}/cancel`).send({ email: 'notregistered@example.com' });
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Registration not found');
+  });
+
+  test('returns 404 when cancelling with invalid or unknown event ID', async () => {
+    // Malformed event ID
+    const malformed = await request(app).post('/api/events/not-an-id/cancel').send({ email: 'asha@example.com' });
+    expect(malformed.status).toBe(404);
+
+    // Nonexistent ObjectId
+    const missing = await request(app).post(`/api/events/${new mongoose.Types.ObjectId()}/cancel`).send({ email: 'asha@example.com' });
+    expect(missing.status).toBe(404);
+  });
+
+  test('returns 400 when cancelling with invalid or missing email', async () => {
+    const event = await createEvent();
+    const empty = await request(app).post(`/api/events/${event._id}/cancel`).send({});
+    expect(empty.status).toBe(400);
+    expect(empty.body.details.email).toBeDefined();
+
+    const invalid = await request(app).post(`/api/events/${event._id}/cancel`).send({ email: 'not-an-email' });
+    expect(invalid.status).toBe(400);
+    expect(invalid.body.details.email).toBeDefined();
+  });
+
+  test('supports DELETE method for cancelling registration', async () => {
+    const event = await createEvent();
+    await request(app).post(`/api/events/${event._id}/register`).send({ name: 'Asha', email: 'asha@example.com' });
+
+    const res = await request(app).delete(`/api/events/${event._id}/cancel`).send({ email: 'asha@example.com' });
+    expect(res.status).toBe(200);
+    expect(await Registration.countDocuments({ eventId: event._id })).toBe(0);
+
+    // Re-register and test DELETE on /registrations
+    await request(app).post(`/api/events/${event._id}/register`).send({ name: 'Asha', email: 'asha@example.com' });
+    const res2 = await request(app).delete(`/api/events/${event._id}/registrations`).send({ email: 'asha@example.com' });
+    expect(res2.status).toBe(200);
+    expect(await Registration.countDocuments({ eventId: event._id })).toBe(0);
   });
 });
 

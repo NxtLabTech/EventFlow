@@ -92,4 +92,20 @@ function validateRegistrationInput(input) {
   return { errors, value };
 }
 
-module.exports = { validateEventInput, validateRegistrationInput };
+function validateCancelInput(input) {
+  const body = input && typeof input === 'object' ? input : {};
+  const errors = {};
+  const value = {};
+
+  if (!isString(body.email) || body.email.trim() === '') {
+    errors.email = 'email is required';
+  } else if (body.email.trim().length > 254 || !EMAIL_RE.test(body.email.trim())) {
+    errors.email = 'email must be a valid email address';
+  } else {
+    value.email = body.email.trim().toLowerCase();
+  }
+
+  return { errors, value };
+}
+
+module.exports = { validateEventInput, validateRegistrationInput, validateCancelInput };

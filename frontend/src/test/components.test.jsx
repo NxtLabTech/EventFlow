@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import EventForm from '../components/EventForm.jsx';
 import RegistrationForm from '../components/RegistrationForm.jsx';
+import RegistrationList from '../components/RegistrationList.jsx';
 import EventCard from '../components/EventCard.jsx';
 import EventsList from '../pages/EventsList.jsx';
 import EventDetails from '../pages/EventDetails.jsx';
@@ -73,6 +74,25 @@ describe('RegistrationForm', () => {
   });
 });
 
+describe('RegistrationList', () => {
+  test('shows the empty state when there are no registrations', () => {
+    render(<RegistrationList registrations={[]} />);
+    expect(screen.getByText('No registrations yet')).toBeInTheDocument();
+  });
+
+  test('renders registrations with cancel action and triggers onCancel with email', async () => {
+    const onCancel = vi.fn();
+    const registrations = [
+      { _id: 'r1', name: 'Asha', email: 'asha@example.com', registeredAt: '2026-01-01T00:00:00.000Z' },
+    ];
+    render(<RegistrationList registrations={registrations} onCancel={onCancel} />);
+    expect(screen.getByText('Asha')).toBeInTheDocument();
+    expect(screen.getByText('asha@example.com')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(onCancel).toHaveBeenCalledWith('asha@example.com');
+  });
+});
+
 describe('EventsList', () => {
   test('shows the empty state when there are no events', async () => {
     mockFetch(200, []);
@@ -136,5 +156,52 @@ describe('EventDetails', () => {
     expect(await screen.findByText('Registration successful!')).toBeInTheDocument();
     expect(await screen.findByText('asha@example.com')).toBeInTheDocument();
     expect(screen.getByText('Registration successful!')).toBeInTheDocument();
+  });
+
+  test('cancels registration, shows confirmation message, and updates capacity and list', async () => {
+    let registered = true;
+    globalThis.fetch = vi.fn(async (url, opts) => {
+      await new Promise((r) => setTimeout(r, 10));
+      const ok = (body, status = 200) => ({ ok: true, status, json: async () => body });
+      if (opts?.method === 'POST' && url.includes('/cancel')) {
+        registered = false;
+        return ok({ message: 'Registration cancelled successfully' });
+      }
+      if (url.endsWith('/registrations')) {
+        return ok(registered ? [{ _id: 'r1', name: 'Asha', email: 'asha@example.com', registeredAt: '2026-01-01T00:00:00Z' }] : []);
+      }
+      return ok({ ...event, registrationCount: registered ? 1 : 0 });
+    });
+
+    renderDetails();
+    expect(await screen.findByText('asha@example.com')).toBeInTheDocument();
+    expect(screen.getByText(/1 \/ 5/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(await screen.findByText('Registration cancelled successfully')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('asha@example.com')).not.toBeInTheDocument();
+    });
+    expect(await screen.findByText('No registrations yet')).toBeInTheDocument();
+    expect(screen.getByText(/0 \/ 5/)).toBeInTheDocument();
+  });
+
+  test('shows error when cancellation fails', async () => {
+    globalThis.fetch = vi.fn(async (url, opts) => {
+      const ok = (body, status = 200) => ({ ok: true, status, json: async () => body });
+      if (opts?.method === 'POST' && url.includes('/cancel')) {
+        return { ok: false, status: 404, json: async () => ({ error: 'Registration not found' }) };
+      }
+      if (url.endsWith('/registrations')) {
+        return ok([{ _id: 'r1', name: 'Asha', email: 'asha@example.com', registeredAt: '2026-01-01T00:00:00Z' }]);
+      }
+      return ok({ ...event, registrationCount: 1 });
+    });
+
+    renderDetails();
+    expect(await screen.findByText('asha@example.com')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Registration not found');
   });
 });
