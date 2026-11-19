@@ -1,9 +1,14 @@
+import importlib
+import os
 from datetime import datetime, timezone
+from unittest import mock
 
 import mongomock
 from bson import ObjectId
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
+
+from eventflow_admin import settings as project_settings
 
 from .models import Event, Registration
 from .sync import sync_from_mongo
@@ -65,3 +70,32 @@ class AdminTests(TestCase):
     def test_admin_is_read_only(self):
         self.assertEqual(self.client.get("/eventdata/event/add/").status_code, 403)
         self.assertEqual(self.client.get(f"/eventdata/event/{Event.objects.get().pk}/delete/").status_code, 403)
+
+
+class DebugSettingTests(SimpleTestCase):
+    """DJANGO_DEBUG must be off unless it is explicitly set to "true"."""
+
+    def load_settings(self, **env):
+        # settings.py runs at import time, so re-run it with a controlled environment.
+        # load_dotenv is mocked so a developer's local admin/.env cannot change the result.
+        with mock.patch.dict(os.environ, env, clear=True), mock.patch("dotenv.load_dotenv"):
+            return importlib.reload(project_settings)
+
+    def tearDown(self):
+        importlib.reload(project_settings)  # leave the module as other tests expect it
+
+    def test_debug_is_off_when_variable_is_missing(self):
+        loaded = self.load_settings(DJANGO_SECRET_KEY="test-secret")
+        self.assertFalse(loaded.DEBUG)
+
+    def test_debug_is_off_when_explicitly_false(self):
+        loaded = self.load_settings(DJANGO_DEBUG="false", DJANGO_SECRET_KEY="test-secret")
+        self.assertFalse(loaded.DEBUG)
+
+    def test_debug_can_be_enabled_explicitly(self):
+        loaded = self.load_settings(DJANGO_DEBUG="true")
+        self.assertTrue(loaded.DEBUG)
+
+    def test_missing_secret_key_is_rejected_when_debug_is_off(self):
+        with self.assertRaises(RuntimeError):
+            self.load_settings()
