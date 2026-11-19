@@ -28,6 +28,29 @@ function requiredText(body, field, max, errors, out) {
   }
 }
 
+const MAX_CAPACITY = 100000;
+// Plain decimal notation only: rejects "1e2", "0x10", "Infinity" and similar
+// strings that Number() would otherwise silently accept.
+const NUMERIC_RE = /^[+-]?\d+(\.\d+)?$/;
+
+// Capacity must be a whole number between 1 and MAX_CAPACITY.
+// Accepts a JSON number or a numeric string (HTML forms send strings).
+function validateCapacity(raw) {
+  if (raw === undefined || raw === null || (isString(raw) && raw.trim() === '')) {
+    return { error: 'capacity is required' };
+  }
+
+  let num;
+  if (typeof raw === 'number') num = raw;
+  else if (isString(raw) && NUMERIC_RE.test(raw.trim())) num = Number(raw.trim());
+
+  if (num === undefined || !Number.isFinite(num)) return { error: 'capacity must be a number' };
+  if (!Number.isInteger(num)) return { error: 'capacity must be a whole number' };
+  if (num < 1) return { error: 'capacity must be greater than 0' };
+  if (num > MAX_CAPACITY) return { error: `capacity must be at most ${MAX_CAPACITY}` };
+  return { value: num };
+}
+
 function validateEventInput(input) {
   const body = input && typeof input === 'object' ? input : {};
   const errors = {};
@@ -61,15 +84,9 @@ function validateEventInput(input) {
     value.time = body.time;
   }
 
-  const cap = body.capacity;
-  const capNum = typeof cap === 'string' && cap.trim() !== '' ? Number(cap) : cap;
-  if (cap === undefined || cap === null || cap === '') {
-    errors.capacity = 'capacity is required';
-  } else if (!Number.isInteger(capNum) || capNum < 1 || capNum > 100000) {
-    errors.capacity = 'capacity must be a positive whole number (max 100000)';
-  } else {
-    value.capacity = capNum;
-  }
+  const capacity = validateCapacity(body.capacity);
+  if (capacity.error) errors.capacity = capacity.error;
+  else value.capacity = capacity.value;
 
   return { errors, value };
 }
