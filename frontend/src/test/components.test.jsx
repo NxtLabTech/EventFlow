@@ -101,6 +101,20 @@ describe('EventCard', () => {
     render(<MemoryRouter><EventCard event={event} /></MemoryRouter>);
     expect(screen.getByRole('link')).toHaveAttribute('href', '/events/xyz');
   });
+
+  test('shows registrations out of capacity', () => {
+    const event = { _id: 'xyz', title: 'T', date: '2099-01-15T00:00:00.000Z', time: '09:00', location: 'L', organizer: 'O', capacity: 100, registrationCount: 25 };
+    render(<MemoryRouter><EventCard event={event} /></MemoryRouter>);
+    expect(screen.getByText('Registrations: 25 / 100')).toBeInTheDocument();
+    expect(screen.queryByText('Full')).not.toBeInTheDocument();
+  });
+
+  test('marks a full event', () => {
+    const event = { _id: 'xyz', title: 'T', date: '2099-01-15T00:00:00.000Z', time: '09:00', location: 'L', organizer: 'O', capacity: 3, registrationCount: 3 };
+    render(<MemoryRouter><EventCard event={event} /></MemoryRouter>);
+    expect(screen.getByText('Registrations: 3 / 3')).toBeInTheDocument();
+    expect(screen.getByText('Full')).toBeInTheDocument();
+  });
 });
 
 describe('EventDetails', () => {

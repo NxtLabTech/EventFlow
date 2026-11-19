@@ -20,9 +20,23 @@ async function createEvent(req, res) {
   res.status(201).json(event);
 }
 
+// Returns a Map of eventId (string) -> number of registrations, using a single
+// aggregation instead of one countDocuments() call per event.
+async function countRegistrationsByEvent(eventIds) {
+  if (!eventIds.length) return new Map();
+  const rows = await Registration.aggregate([
+    { $match: { eventId: { $in: eventIds } } },
+    { $group: { _id: '$eventId', count: { $sum: 1 } } },
+  ]);
+  return new Map(rows.map((r) => [String(r._id), r.count]));
+}
+
 async function listEvents(req, res) {
   const events = await Event.find().sort({ date: 1, time: 1 });
-  res.json(events);
+  const counts = await countRegistrationsByEvent(events.map((e) => e._id));
+  res.json(
+    events.map((e) => ({ ...e.toObject(), registrationCount: counts.get(String(e._id)) || 0 }))
+  );
 }
 
 async function getEvent(req, res) {
