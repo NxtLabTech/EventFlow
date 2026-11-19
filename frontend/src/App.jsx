@@ -11,7 +11,8 @@ export default function App() {
   return (
     <>
       <Navbar />
-      <main className="mx-auto max-w-5xl px-4 py-8">
+      {/* wrap-anywhere: long unbroken words, emails and URLs wrap instead of widening the page */}
+      <main className="mx-auto max-w-5xl px-4 py-6 wrap-anywhere sm:py-8">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/events" element={<EventsList />} />
