@@ -36,8 +36,41 @@ describe('EventForm', () => {
     await userEvent.type(screen.getByLabelText('Capacity'), '25');
     await userEvent.click(screen.getByRole('button', { name: /save event/i }));
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ title: 'Demo Day', date: '2099-01-15', capacity: 25 })
+      expect.objectContaining({ title: 'Demo Day', description: '', date: '2099-01-15', capacity: 25 })
     );
+  });
+
+  test('submits trimmed description when provided', async () => {
+    const onSubmit = vi.fn().mockResolvedValue();
+    render(<EventForm onSubmit={onSubmit} />);
+    await userEvent.type(screen.getByLabelText('Title'), 'Demo Day');
+    await userEvent.type(screen.getByLabelText('Description'), '  Annual demo day presentations  ');
+    await userEvent.type(screen.getByLabelText('Date'), '2099-01-15');
+    await userEvent.type(screen.getByLabelText('Time'), '10:00');
+    await userEvent.type(screen.getByLabelText('Location'), 'Online');
+    await userEvent.type(screen.getByLabelText('Organizer'), 'Team');
+    await userEvent.type(screen.getByLabelText('Capacity'), '25');
+    await userEvent.click(screen.getByRole('button', { name: /save event/i }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ description: 'Annual demo day presentations' })
+    );
+  });
+
+  test('populates existing description in edit mode', () => {
+    render(
+      <EventForm
+        initialValues={{
+          title: 'Existing Event',
+          description: 'Existing description',
+          date: '2099-01-15T00:00:00.000Z',
+          time: '10:00',
+          location: 'Hall A',
+          organizer: 'Lead',
+          capacity: 50,
+        }}
+      />
+    );
+    expect(screen.getByLabelText('Description')).toHaveValue('Existing description');
   });
 });
 
@@ -118,6 +151,26 @@ describe('EventDetails', () => {
     globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({ error: 'Event not found' }) });
     renderDetails();
     expect(await screen.findByText('Event not found')).toBeInTheDocument();
+  });
+
+  test('displays fallback message when description is empty', async () => {
+    globalThis.fetch = vi.fn(async (url) => {
+      const ok = (body, status = 200) => ({ ok: true, status, json: async () => body });
+      if (url.endsWith('/registrations')) return ok([]);
+      return ok({ ...event, description: '' });
+    });
+    renderDetails();
+    expect(await screen.findByText('No description provided.')).toBeInTheDocument();
+  });
+
+  test('displays the event description when provided', async () => {
+    globalThis.fetch = vi.fn(async (url) => {
+      const ok = (body, status = 200) => ({ ok: true, status, json: async () => body });
+      if (url.endsWith('/registrations')) return ok([]);
+      return ok({ ...event, description: 'Join us for tech talks and networking.' });
+    });
+    renderDetails();
+    expect(await screen.findByText('Join us for tech talks and networking.')).toBeInTheDocument();
   });
 
   test('keeps the success message after registering (page refreshes in the background)', async () => {

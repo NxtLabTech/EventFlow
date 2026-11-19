@@ -44,9 +44,17 @@ describe('events', () => {
   test('creates an event', async () => {
     const res = await request(app).post('/api/events').send(validEvent());
     expect(res.status).toBe(201);
-    expect(res.body).toMatchObject({ title: 'Node Meetup', capacity: 2 });
+    expect(res.body).toMatchObject({ title: 'Node Meetup', description: 'Talks about Node.js', capacity: 2 });
     expect(res.body._id).toBeDefined();
     expect(res.body.createdAt).toBeDefined();
+  });
+
+  test('creates an event without description and defaults to empty string', async () => {
+    const eventData = validEvent();
+    delete eventData.description;
+    const res = await request(app).post('/api/events').send(eventData);
+    expect(res.status).toBe(201);
+    expect(res.body.description).toBe('');
   });
 
   test('rejects invalid event data with 400', async () => {
@@ -63,6 +71,14 @@ describe('events', () => {
     expect(res.body.details.title).toBeDefined();
   });
 
+  test('rejects overly long description', async () => {
+    const res = await request(app)
+      .post('/api/events')
+      .send(validEvent({ description: 'x'.repeat(2001) }));
+    expect(res.status).toBe(400);
+    expect(res.body.details.description).toBeDefined();
+  });
+
   test('lists events sorted by date', async () => {
     await createEvent({ title: 'Later', date: '2099-05-01' });
     await createEvent({ title: 'Sooner', date: '2099-02-01' });
@@ -76,6 +92,7 @@ describe('events', () => {
     const res = await request(app).get(`/api/events/${event._id}`);
     expect(res.status).toBe(200);
     expect(res.body.title).toBe('Node Meetup');
+    expect(res.body.description).toBe('Talks about Node.js');
     expect(res.body.registrationCount).toBe(0);
   });
 
@@ -93,6 +110,19 @@ describe('events', () => {
       .send(validEvent({ title: 'Renamed', capacity: 10 }));
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ title: 'Renamed', capacity: 10 });
+  });
+
+  test('updates an event description and persists the change', async () => {
+    const event = await createEvent({ description: 'Original description' });
+    const res = await request(app)
+      .put(`/api/events/${event._id}`)
+      .send(validEvent({ description: 'Updated description' }));
+    expect(res.status).toBe(200);
+    expect(res.body.description).toBe('Updated description');
+
+    const fetched = await request(app).get(`/api/events/${event._id}`);
+    expect(fetched.status).toBe(200);
+    expect(fetched.body.description).toBe('Updated description');
   });
 
   test('does not allow capacity below current registrations', async () => {
