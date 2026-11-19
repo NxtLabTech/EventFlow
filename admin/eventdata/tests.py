@@ -8,7 +8,7 @@ from django.test import TestCase
 from .models import Event, Registration
 from .sync import sync_from_mongo
 
-
+# hfjk
 def make_db():
     db = mongomock.MongoClient().eventflow
     event_id = ObjectId()
@@ -26,6 +26,7 @@ def make_db():
             "updatedAt": datetime(2026, 1, 2, tzinfo=timezone.utc),
         }
     )
+    # hj
     db.registrations.insert_many(
         [
             {"name": "Asha", "email": "asha@example.com", "eventId": event_id, "registeredAt": datetime(2026, 2, 1, tzinfo=timezone.utc)},

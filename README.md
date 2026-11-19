@@ -8,6 +8,7 @@ EventFlow is a small, intentionally simple MVP: an organizer can create and mana
 
 - Create, list, view, edit and delete events
 - Register a participant for an event (name + email)
+- Cancel a participant registration using email address
 - Duplicate registrations (same email, same event) are rejected
 - Registration is closed once an event reaches its capacity
 - View the registered participants of an event
@@ -144,6 +145,7 @@ Base URL: `http://localhost:5000/api`. All bodies are JSON.
 | PUT | `/events/:id` | Replace event fields | 200 |
 | DELETE | `/events/:id` | Delete an event and its registrations | 200 |
 | POST | `/events/:eventId/register` | Register a participant | 201 |
+| POST | `/events/:eventId/cancel` | Cancel a registration | 200 |
 | GET | `/events/:eventId/registrations` | List an event's registrations | 200 |
 | GET | `/stats` | `{ totalEvents, totalRegistrations, upcomingEvents }` | 200 |
 
@@ -218,7 +220,6 @@ cd admin && python manage.py test
 Ideas that are **not** implemented yet:
 
 - Authentication and organizer accounts
-- Cancel a registration; participant self-service
 - Search, filtering and pagination on the events list
 - Race-safe capacity enforcement (currently check-then-insert)
 - Past events shown separately / event status

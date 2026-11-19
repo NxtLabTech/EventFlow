@@ -44,4 +44,6 @@ export const api = {
   deleteEvent: (id) => send('DELETE', `/events/${id}`),
   listRegistrations: (id) => request(`/events/${id}/registrations`),
   register: (id, data) => send('POST', `/events/${id}/register`, data),
+  cancelRegistration: (id, data) =>
+    send('POST', `/events/${id}/cancel`, typeof data === 'string' ? { email: data } : data),
 };
