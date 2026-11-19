@@ -74,6 +74,42 @@ describe('RegistrationForm', () => {
 });
 
 describe('EventsList', () => {
+  // A fetch whose response we release by hand, to observe the in-flight state.
+  function deferredFetch() {
+    const pending = [];
+    globalThis.fetch = vi.fn(() => new Promise((resolve) => pending.push(resolve)));
+    return (status, body) => pending.shift()({ ok: status < 400, status, json: async () => body });
+  }
+
+  test('shows "Loading events..." (and not the empty state) while the request is in flight', async () => {
+    const respond = deferredFetch();
+    render(<MemoryRouter><EventsList /></MemoryRouter>);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading events...');
+    expect(screen.queryByText('No events yet')).not.toBeInTheDocument();
+
+    respond(200, []);
+    expect(await screen.findByText('No events yet')).toBeInTheDocument();
+    expect(screen.queryByText('Loading events...')).not.toBeInTheDocument();
+  });
+
+  test('hides the loading state after a failed request and shows it again on retry', async () => {
+    const respond = deferredFetch();
+    render(<MemoryRouter><EventsList /></MemoryRouter>);
+
+    respond(500, { error: 'Internal server error' });
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Internal server error'));
+    expect(screen.queryByText('Loading events...')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(screen.getByText('Loading events...')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    respond(200, [{ _id: '1', title: 'Node Meetup', date: '2099-01-15T00:00:00.000Z', time: '18:30', location: 'L', organizer: 'O', capacity: 10 }]);
+    expect(await screen.findByText('Node Meetup')).toBeInTheDocument();
+    expect(screen.queryByText('Loading events...')).not.toBeInTheDocument();
+  });
+
   test('shows the empty state when there are no events', async () => {
     mockFetch(200, []);
     render(<MemoryRouter><EventsList /></MemoryRouter>);
