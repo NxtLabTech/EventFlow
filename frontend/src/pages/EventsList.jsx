@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useFetch from '../hooks/useFetch.js';
 import { api } from '../api/client.js';
@@ -6,8 +7,24 @@ import Loading from '../components/Loading.jsx';
 import ErrorMessage from '../components/ErrorMessage.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 
+const SEARCH_DEBOUNCE_MS = 300;
+
 export default function EventsList() {
-  const { data: events, loading, error, reload } = useFetch(() => api.listEvents());
+  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
+
+  // Wait until the user pauses typing before asking the backend.
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(query.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  const { data: events, loading, error, reload } = useFetch(() => api.listEvents(search), [search]);
+
+  function clearSearch() {
+    setQuery('');
+    setSearch('');
+  }
 
   return (
     <div>
@@ -17,9 +34,30 @@ export default function EventsList() {
           New Event
         </Link>
       </div>
+      <div className="mb-6">
+        <label htmlFor="event-search" className="sr-only">
+          Search events
+        </label>
+        <input
+          id="event-search"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search events..."
+          maxLength={100}
+          className="block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
       {loading && <Loading />}
       {error && <ErrorMessage message={error.message} onRetry={reload} />}
-      {events && events.length === 0 && (
+      {events && events.length === 0 && search && (
+        <EmptyState title={`No events match "${search}"`}>
+          <button type="button" onClick={clearSearch} className="text-indigo-600 underline">
+            Clear search
+          </button>
+        </EmptyState>
+      )}
+      {events && events.length === 0 && !search && (
         <EmptyState title="No events yet">
           <Link to="/events/new" className="text-indigo-600 underline">
             Create your first event

@@ -20,8 +20,25 @@ async function createEvent(req, res) {
   res.status(201).json(event);
 }
 
+const MAX_SEARCH_LENGTH = 100;
+
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// GET /api/events?search=term -> case-insensitive "contains" match on the title.
+// A missing, blank or non-string search returns every event.
+function buildListFilter(query) {
+  const search = typeof query.search === 'string' ? query.search.trim() : '';
+  if (!search) return {};
+  if (search.length > MAX_SEARCH_LENGTH) {
+    throw new HttpError(400, 'Validation failed', {
+      search: `search must be at most ${MAX_SEARCH_LENGTH} characters`,
+    });
+  }
+  return { title: { $regex: escapeRegex(search), $options: 'i' } };
+}
+
 async function listEvents(req, res) {
-  const events = await Event.find().sort({ date: 1, time: 1 });
+  const events = await Event.find(buildListFilter(req.query)).sort({ date: 1, time: 1 });
   res.json(events);
 }
 
