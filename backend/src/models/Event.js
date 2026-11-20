@@ -8,7 +8,15 @@ const eventSchema = new mongoose.Schema(
     time: { type: String, required: true }, // "HH:MM" (24h)
     location: { type: String, required: true, trim: true, maxlength: 200 },
     organizer: { type: String, required: true, trim: true, maxlength: 100 },
-    capacity: { type: Number, required: true, min: 1 },
+    capacity: {
+      type: Number,
+      required: [true, 'Capacity is required'],
+      min: [1, 'Capacity must be greater than 0'],
+      validate: {
+        validator: Number.isInteger,
+        message: 'Capacity must be a whole number',
+      },
+    },
   },
   { timestamps: true }
 );
