@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import useFetch from '../hooks/useFetch.js';
 import { api } from '../api/client.js';
 import EventCard from '../components/EventCard.jsx';
@@ -7,6 +7,8 @@ import ErrorMessage from '../components/ErrorMessage.jsx';
 import EmptyState from '../components/EmptyState.jsx';
 
 export default function EventsList() {
+  const location = useLocation();
+  const successMessage = location.state?.message;
   const { data: events, loading, error, reload } = useFetch(() => api.listEvents());
 
   return (
@@ -17,6 +19,11 @@ export default function EventsList() {
           New Event
         </Link>
       </div>
+      {successMessage && (
+        <p role="status" className="mb-4 rounded-md bg-green-50 p-3 text-sm text-green-700">
+          {successMessage}
+        </p>
+      )}
       {loading && <Loading />}
       {error && <ErrorMessage message={error.message} onRetry={reload} />}
       {events && events.length === 0 && (
