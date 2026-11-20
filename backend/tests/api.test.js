@@ -57,6 +57,36 @@ describe('events', () => {
     expect(Object.keys(res.body.details)).toEqual(expect.arrayContaining(['title', 'date', 'capacity']));
   });
 
+  test('rejects zero capacity with 400', async () => {
+    const res = await request(app).post('/api/events').send(validEvent({ capacity: 0 }));
+    expect(res.status).toBe(400);
+    expect(res.body.details.capacity).toBe('Capacity must be greater than 0');
+  });
+
+  test('rejects negative capacity with 400', async () => {
+    const res = await request(app).post('/api/events').send(validEvent({ capacity: -10 }));
+    expect(res.status).toBe(400);
+    expect(res.body.details.capacity).toBe('Capacity must be greater than 0');
+  });
+
+  test('rejects non-numeric capacity with 400', async () => {
+    const res = await request(app).post('/api/events').send(validEvent({ capacity: 'invalid' }));
+    expect(res.status).toBe(400);
+    expect(res.body.details.capacity).toBe('Capacity must be a valid number');
+  });
+
+  test('rejects empty capacity with 400', async () => {
+    const res = await request(app).post('/api/events').send(validEvent({ capacity: '' }));
+    expect(res.status).toBe(400);
+    expect(res.body.details.capacity).toBe('Capacity is required');
+  });
+
+  test('accepts valid numeric string capacity', async () => {
+    const res = await request(app).post('/api/events').send(validEvent({ capacity: '25' }));
+    expect(res.status).toBe(201);
+    expect(res.body.capacity).toBe(25);
+  });
+
   test('rejects overly long title', async () => {
     const res = await request(app).post('/api/events').send(validEvent({ title: 'x'.repeat(101) }));
     expect(res.status).toBe(400);

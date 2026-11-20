@@ -28,6 +28,50 @@ function requiredText(body, field, max, errors, out) {
   }
 }
 
+function validateCapacity(raw, errors, value) {
+  if (raw === undefined || raw === null || (isString(raw) && raw.trim() === '')) {
+    errors.capacity = 'Capacity is required';
+    return;
+  }
+
+  if (typeof raw === 'boolean') {
+    errors.capacity = 'Capacity must be a valid number';
+    return;
+  }
+
+  let capNum = raw;
+  if (isString(raw)) {
+    const trimmed = raw.trim();
+    if (!/^-?\d+(\.\d+)?$/.test(trimmed)) {
+      errors.capacity = 'Capacity must be a valid number';
+      return;
+    }
+    capNum = Number(trimmed);
+  }
+
+  if (typeof capNum !== 'number' || Number.isNaN(capNum) || !Number.isFinite(capNum)) {
+    errors.capacity = 'Capacity must be a valid number';
+    return;
+  }
+
+  if (capNum <= 0) {
+    errors.capacity = 'Capacity must be greater than 0';
+    return;
+  }
+
+  if (!Number.isInteger(capNum)) {
+    errors.capacity = 'Capacity must be a whole number';
+    return;
+  }
+
+  if (capNum > 100000) {
+    errors.capacity = 'Capacity must be at most 100000';
+    return;
+  }
+
+  value.capacity = capNum;
+}
+
 function validateEventInput(input) {
   const body = input && typeof input === 'object' ? input : {};
   const errors = {};
@@ -61,15 +105,7 @@ function validateEventInput(input) {
     value.time = body.time;
   }
 
-  const cap = body.capacity;
-  const capNum = typeof cap === 'string' && cap.trim() !== '' ? Number(cap) : cap;
-  if (cap === undefined || cap === null || cap === '') {
-    errors.capacity = 'capacity is required';
-  } else if (!Number.isInteger(capNum) || capNum < 1 || capNum > 100000) {
-    errors.capacity = 'capacity must be a positive whole number (max 100000)';
-  } else {
-    value.capacity = capNum;
-  }
+  validateCapacity(body.capacity, errors, value);
 
   return { errors, value };
 }
@@ -92,4 +128,4 @@ function validateRegistrationInput(input) {
   return { errors, value };
 }
 
-module.exports = { validateEventInput, validateRegistrationInput };
+module.exports = { validateEventInput, validateRegistrationInput, validateCapacity };
