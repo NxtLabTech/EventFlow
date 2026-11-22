@@ -219,19 +219,30 @@ describe('registrations', () => {
     expect(invalid.body.details.email).toBeDefined();
   });
 
-  test('supports DELETE method for cancelling registration', async () => {
+  test('cannot cancel a registration using a different event ID', async () => {
+    const eventA = await createEvent({ title: 'Event A' });
+    const eventB = await createEvent({ title: 'Event B' });
+    await request(app).post(`/api/events/${eventA._id}/register`).send({ name: 'Asha', email: 'asha@example.com' });
+
+    // Attempting to cancel Asha's registration using Event B's ID should return 404
+    const res = await request(app).post(`/api/events/${eventB._id}/cancel`).send({ email: 'asha@example.com' });
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('Registration not found');
+
+    // Registration for Event A is untouched
+    expect(await Registration.countDocuments({ eventId: eventA._id })).toBe(1);
+  });
+
+  test('subsequent cancellation of the same registration returns 404', async () => {
     const event = await createEvent();
     await request(app).post(`/api/events/${event._id}/register`).send({ name: 'Asha', email: 'asha@example.com' });
 
-    const res = await request(app).delete(`/api/events/${event._id}/cancel`).send({ email: 'asha@example.com' });
-    expect(res.status).toBe(200);
-    expect(await Registration.countDocuments({ eventId: event._id })).toBe(0);
+    const first = await request(app).post(`/api/events/${event._id}/cancel`).send({ email: 'asha@example.com' });
+    expect(first.status).toBe(200);
 
-    // Re-register and test DELETE on /registrations
-    await request(app).post(`/api/events/${event._id}/register`).send({ name: 'Asha', email: 'asha@example.com' });
-    const res2 = await request(app).delete(`/api/events/${event._id}/registrations`).send({ email: 'asha@example.com' });
-    expect(res2.status).toBe(200);
-    expect(await Registration.countDocuments({ eventId: event._id })).toBe(0);
+    const second = await request(app).post(`/api/events/${event._id}/cancel`).send({ email: 'asha@example.com' });
+    expect(second.status).toBe(404);
+    expect(second.body.error).toBe('Registration not found');
   });
 });
 

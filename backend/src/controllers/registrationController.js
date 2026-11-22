@@ -23,18 +23,11 @@ async function registerParticipant(req, res) {
 async function cancelRegistration(req, res) {
   const event = await findEventOr404(req.params.eventId);
 
-  const rawInput = {
-    ...req.query,
-    ...req.body,
-    ...(req.params.email ? { email: req.params.email } : {}),
-  };
-  const { errors, value } = validateCancelInput(rawInput);
+  const { errors, value } = validateCancelInput(req.body);
   if (Object.keys(errors).length) throw new HttpError(400, 'Validation failed', errors);
 
-  const registration = await Registration.findOne({ eventId: event._id, email: value.email });
+  const registration = await Registration.findOneAndDelete({ eventId: event._id, email: value.email });
   if (!registration) throw new HttpError(404, 'Registration not found');
-
-  await registration.deleteOne();
 
   const remainingCount = await Registration.countDocuments({ eventId: event._id });
   res.json({

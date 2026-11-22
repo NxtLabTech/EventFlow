@@ -74,20 +74,23 @@ function validateEventInput(input) {
   return { errors, value };
 }
 
+function requiredEmail(body, errors, out) {
+  if (!isString(body.email) || body.email.trim() === '') {
+    errors.email = 'email is required';
+  } else if (body.email.trim().length > 254 || !EMAIL_RE.test(body.email.trim())) {
+    errors.email = 'email must be a valid email address';
+  } else {
+    out.email = body.email.trim().toLowerCase();
+  }
+}
+
 function validateRegistrationInput(input) {
   const body = input && typeof input === 'object' ? input : {};
   const errors = {};
   const value = {};
 
   requiredText(body, 'name', 100, errors, value);
-
-  if (!isString(body.email) || body.email.trim() === '') {
-    errors.email = 'email is required';
-  } else if (body.email.trim().length > 254 || !EMAIL_RE.test(body.email.trim())) {
-    errors.email = 'email must be a valid email address';
-  } else {
-    value.email = body.email.trim().toLowerCase();
-  }
+  requiredEmail(body, errors, value);
 
   return { errors, value };
 }
@@ -97,13 +100,7 @@ function validateCancelInput(input) {
   const errors = {};
   const value = {};
 
-  if (!isString(body.email) || body.email.trim() === '') {
-    errors.email = 'email is required';
-  } else if (body.email.trim().length > 254 || !EMAIL_RE.test(body.email.trim())) {
-    errors.email = 'email must be a valid email address';
-  } else {
-    value.email = body.email.trim().toLowerCase();
-  }
+  requiredEmail(body, errors, value);
 
   return { errors, value };
 }
