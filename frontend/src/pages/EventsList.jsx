@@ -17,7 +17,7 @@ export default function EventsList() {
           New Event
         </Link>
       </div>
-      {loading && <Loading />}
+      {loading && <Loading label="Loading events..." />}
       {error && <ErrorMessage message={error.message} onRetry={reload} />}
       {events && events.length === 0 && (
         <EmptyState title="No events yet">
