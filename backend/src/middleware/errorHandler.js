@@ -10,11 +10,25 @@ function errorHandler(err, req, res, next) {
   if (err.type === 'entity.parse.failed') {
     return res.status(400).json({ error: 'Invalid JSON body' });
   }
+
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request body too large' });
+  }
+
+  if (err.type === 'encoding.unsupported') {
+    return res.status(415).json({ error: 'Unsupported content encoding' });
+  }
+
+  if (err.type === 'charset.unsupported') {
+    return res.status(415).json({ error: 'Unsupported character set' });
+  }
+
   if (err instanceof HttpError) {
     const body = { error: err.message };
     if (err.details) body.details = err.details;
     return res.status(err.status).json(body);
   }
+
   if (err.code === 11000) {
     return res.status(409).json({ error: 'Duplicate entry' });
   }
