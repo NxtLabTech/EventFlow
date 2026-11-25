@@ -14,6 +14,7 @@ router
   .delete(events.deleteEvent);
 
 router.post('/:eventId/register', validateObjectId('eventId'), registrations.registerParticipant);
+router.post('/:eventId/cancel', validateObjectId('eventId'), registrations.cancelRegistration);
 router.get('/:eventId/registrations', validateObjectId('eventId'), registrations.listRegistrations);
 
 module.exports = router;
