@@ -21,7 +21,7 @@ export default function RegistrationForm({ eventId, disabled, onRegistered }) {
 
     const found = {};
     if (!values.name.trim()) found.name = 'Name is required';
-    if (!EMAIL_RE.test(values.email.trim())) found.email = 'Enter a valid email address';
+    if (!EMAIL_RE.test(values.email.trim())) found.email = 'Please enter a valid email address.';
     setErrors(found);
     if (Object.keys(found).length) return;
 

@@ -140,6 +140,27 @@ describe('registrations', () => {
     expect(Object.keys(res.body.details)).toEqual(expect.arrayContaining(['name', 'email']));
   });
 
+  test('rejects various invalid email formats with 400', async () => {
+    const event = await createEvent();
+    const invalidEmails = ['plainaddress', '@missingusername.com', 'username@.com', 'username@domain', 'missing-at-sign.com', '', '   '];
+    for (const email of invalidEmails) {
+      const res = await request(app)
+        .post(`/api/events/${event._id}/register`)
+        .send({ name: 'Asha', email });
+      expect(res.status).toBe(400);
+      expect(res.body.details?.email).toBeDefined();
+    }
+  });
+
+  test('accepts valid email formats and normalizes them', async () => {
+    const event = await createEvent({ capacity: 10 });
+    const res = await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: 'Asha', email: '  Asha.Smith+events@Sub.Example.COM  ' });
+    expect(res.status).toBe(201);
+    expect(res.body.email).toBe('asha.smith+events@sub.example.com');
+  });
+
   test('rejects duplicate registration with 409', async () => {
     const event = await createEvent();
     const body = { name: 'Asha', email: 'asha@example.com' };
