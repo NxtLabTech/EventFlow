@@ -43,5 +43,6 @@ export const api = {
   updateEvent: (id, data) => send('PUT', `/events/${id}`, data),
   deleteEvent: (id) => send('DELETE', `/events/${id}`),
   listRegistrations: (id) => request(`/events/${id}/registrations`),
+  exportRegistrationsUrl: (id) => `${BASE_URL}/events/${id}/registrations/export`,
   register: (id, data) => send('POST', `/events/${id}/register`, data),
 };

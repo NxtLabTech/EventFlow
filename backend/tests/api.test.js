@@ -163,6 +163,35 @@ describe('registrations', () => {
     const get = await request(app).get(`/api/events/${id}/registrations`);
     expect(get.status).toBe(404);
   });
+
+  test('exports registrations as CSV', async () => {
+    const event = await createEvent({ title: 'Tech Meetup' });
+    await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: 'Asha Sharma', email: 'asha@example.com' });
+
+    const res = await request(app).get(`/api/events/${event._id}/registrations/export`);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/csv/);
+    expect(res.headers['content-disposition']).toMatch(/attachment; filename="tech_meetup-registrations\.csv"/);
+
+    const lines = res.text.split('\r\n');
+    expect(lines[0]).toBe('"Participant Name","Email","Event Name","Registration Date"');
+    expect(lines[1]).toMatch(/^"Asha Sharma","asha@example\.com","Tech Meetup",".*"$/);
+  });
+
+  test('exports CSV with only headers when event has no registrations', async () => {
+    const event = await createEvent({ title: 'Empty Event' });
+    const res = await request(app).get(`/api/events/${event._id}/registrations/export`);
+    expect(res.status).toBe(200);
+    expect(res.text.trim()).toBe('"Participant Name","Email","Event Name","Registration Date"');
+  });
+
+  test('exporting CSV for a nonexistent event returns 404', async () => {
+    const id = new mongoose.Types.ObjectId();
+    const res = await request(app).get(`/api/events/${id}/registrations/export`);
+    expect(res.status).toBe(404);
+  });
 });
 
 describe('stats & misc', () => {

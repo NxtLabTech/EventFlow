@@ -15,5 +15,6 @@ router
 
 router.post('/:eventId/register', validateObjectId('eventId'), registrations.registerParticipant);
 router.get('/:eventId/registrations', validateObjectId('eventId'), registrations.listRegistrations);
+router.get('/:eventId/registrations/export', validateObjectId('eventId'), registrations.exportRegistrationsCsv);
 
 module.exports = router;
