@@ -134,7 +134,8 @@ describe('EventDetails', () => {
     await userEvent.type(screen.getByLabelText('Email'), 'asha@example.com');
     await userEvent.click(screen.getByRole('button', { name: 'Register' }));
     expect(await screen.findByText('Registration successful!')).toBeInTheDocument();
-    expect(await screen.findByText('asha@example.com')).toBeInTheDocument();
+    // Registration list is organizer-only; public users see a login prompt instead.
+    expect(screen.getByText(/sign in as an organizer/i)).toBeInTheDocument();
     expect(screen.getByText('Registration successful!')).toBeInTheDocument();
   });
 });

@@ -7,16 +7,15 @@ EventFlow is a small, intentionally simple MVP: an organizer can create and mana
 ## Features
 
 - Create, list, view, edit and delete events
-- Register a participant for an event (name + email)
+- Organizer login (JWT) protects create / update / delete and viewing registrations
+- Register a participant for an event (name + email) — public, no login required
 - Duplicate registrations (same email, same event) are rejected
 - Registration is closed once an event reaches its capacity
-- View the registered participants of an event
+- View the registered participants of an event (organizers only)
 - Dashboard: total events, total registrations, upcoming events
 - Loading, error, empty and "not found" states in the UI
 - FastAPI analytics service (`/analytics/events`)
 - Django admin to inspect the data (read-only snapshot, see [Admin](#admin))
-
-Authentication is intentionally **out of scope** for this MVP.
 
 ## Tech Stack
 
@@ -70,10 +69,36 @@ Run each service in its own terminal, starting from the repository root. Start M
 cd backend
 npm install
 cp .env.example .env        # Windows PowerShell: Copy-Item .env.example .env
+```
+
+Copy `.env.example` to `.env`. For local / reviewer testing, the example file already includes a demo organizer account:
+
+| Field | Value |
+| --- | --- |
+| Username | `organizer` |
+| Password | `password` |
+
+(`ORGANIZER_PASSWORD_HASH` in `.env.example` is the bcrypt hash of `password`. Change the hash and `JWT_SECRET` before any real deployment.)
+
+```bash
 npm run dev                 # or: npm start
 ```
 
 Check it: <http://localhost:5000/api/health> returns `{"status":"ok"}`.
+
+Log in from the UI at <http://localhost:5173/login> with **organizer** / **password**, or:
+
+```bash
+curl -X POST http://localhost:5000/api/auth/login -H "Content-Type: application/json" -d "{\"username\":\"organizer\",\"password\":\"password\"}"
+```
+
+Use the returned token as `Authorization: Bearer <token>` on organizer-only requests.
+
+To use a different password, generate a new hash and put it in `ORGANIZER_PASSWORD_HASH`:
+
+```bash
+node -e "console.log(require('bcryptjs').hashSync('your-password', 10))"
+```
 
 ### 2. Frontend (React, port 5173)
 
@@ -124,6 +149,10 @@ Every service ships a `.env.example`; copy it to `.env` (which is git-ignored). 
 | | `MONGODB_URI` | MongoDB connection string, e.g. `mongodb://127.0.0.1:27017/eventflow` |
 | | `CORS_ORIGIN` | Allowed frontend origin(s), comma separated (default `http://localhost:5173`) |
 | | `NODE_ENV` | Set to `production` to hide error messages from 500 responses |
+| | `ORGANIZER_USERNAME` | Username for the organizer account |
+| | `ORGANIZER_PASSWORD_HASH` | bcrypt hash of the organizer password (never store the plain password) |
+| | `JWT_SECRET` | Secret used to sign organizer JWT access tokens |
+| | `JWT_EXPIRES_IN` | Optional token lifetime (default `8h`) |
 | `frontend/.env` | `VITE_API_URL` | Optional API base URL (default `/api`) |
 | `analytics-service/.env` | `MONGODB_URI` | Same database as the backend |
 | `admin/.env` | `MONGODB_URI` | Same database as the backend (used by `sync_from_mongo`) |
@@ -135,17 +164,20 @@ Every service ships a `.env.example`; copy it to `.env` (which is git-ignored). 
 
 Base URL: `http://localhost:5000/api`. All bodies are JSON.
 
-| Method | Path | Description | Success |
-| --- | --- | --- | --- |
-| GET | `/health` | Health check | 200 |
-| POST | `/events` | Create an event | 201 |
-| GET | `/events` | List events (soonest first) | 200 |
-| GET | `/events/:id` | Event details, including `registrationCount` | 200 |
-| PUT | `/events/:id` | Replace event fields | 200 |
-| DELETE | `/events/:id` | Delete an event and its registrations | 200 |
-| POST | `/events/:eventId/register` | Register a participant | 201 |
-| GET | `/events/:eventId/registrations` | List an event's registrations | 200 |
-| GET | `/stats` | `{ totalEvents, totalRegistrations, upcomingEvents }` | 200 |
+| Method | Path | Auth | Description | Success |
+| --- | --- | --- | --- | --- |
+| GET | `/health` | No | Health check | 200 |
+| POST | `/auth/login` | No | Organizer login → `{ token, tokenType, expiresIn }` | 200 |
+| POST | `/events` | Bearer | Create an event | 201 |
+| GET | `/events` | No | List events (soonest first) | 200 |
+| GET | `/events/:id` | No | Event details, including `registrationCount` | 200 |
+| PUT | `/events/:id` | Bearer | Replace event fields | 200 |
+| DELETE | `/events/:id` | Bearer | Delete an event and its registrations | 200 |
+| POST | `/events/:eventId/register` | No | Register a participant | 201 |
+| GET | `/events/:eventId/registrations` | Bearer | List an event's registrations | 200 |
+| GET | `/stats` | No | `{ totalEvents, totalRegistrations, upcomingEvents }` | 200 |
+
+**Login body**: `{ "username": "organizer", "password": "your-password" }`.
 
 **Event body**
 
@@ -170,6 +202,7 @@ Rules: `title` (max 100), `date` (valid `YYYY-MM-DD`), `time` (`HH:MM`, 24h), `l
 | Code | When |
 | --- | --- |
 | 400 | Validation error (`{ "error": "Validation failed", "details": { "field": "message" } }`) or invalid JSON |
+| 401 | Missing/invalid organizer token, or bad login credentials |
 | 404 | Event or route not found (a malformed id is also a 404) |
 | 409 | Duplicate registration, or the event is full |
 | 500 | Unexpected error (`{ "error": "Internal server error" }`; no stack traces) |
@@ -200,10 +233,10 @@ Django's own SQLite database (`admin/db.sqlite3`) also stores the admin login us
 ## Testing
 
 ```bash
-# Backend (17 tests) - spins up an in-memory MongoDB
+# Backend - spins up an in-memory MongoDB
 cd backend && npm test
 
-# Frontend (11 tests)
+# Frontend
 cd frontend && npm test
 
 # FastAPI (5 tests) - with the venv active
@@ -217,7 +250,7 @@ cd admin && python manage.py test
 
 Ideas that are **not** implemented yet:
 
-- Authentication and organizer accounts
+- Multiple organizer accounts / role management
 - Cancel a registration; participant self-service
 - Search, filtering and pagination on the events list
 - Race-safe capacity enforcement (currently check-then-insert)
