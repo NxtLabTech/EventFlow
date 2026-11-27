@@ -137,4 +137,55 @@ describe('EventDetails', () => {
     expect(await screen.findByText('asha@example.com')).toBeInTheDocument();
     expect(screen.getByText('Registration successful!')).toBeInTheDocument();
   });
+
+  test('exports registrations as CSV when Export CSV is clicked', async () => {
+    const blob = new Blob(['Participant Name,Email,Event Name,Registration Date'], { type: 'text/csv' });
+    globalThis.fetch = vi.fn(async (url) => {
+      if (url.endsWith('/registrations/export')) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'Content-Disposition': 'attachment; filename="node-meetup-registrations.csv"' }),
+          blob: async () => blob,
+        };
+      }
+      if (url.endsWith('/registrations')) {
+        return { ok: true, status: 200, json: async () => [] };
+      }
+      return { ok: true, status: 200, json: async () => event };
+    });
+
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-url');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+    renderDetails();
+    const exportBtn = await screen.findByRole('button', { name: 'Export CSV' });
+    await userEvent.click(exportBtn);
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith('/api/events/e1/registrations/export');
+      expect(createObjectURL).toHaveBeenCalledWith(blob);
+      expect(clickSpy).toHaveBeenCalled();
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+    });
+  });
+
+  test('shows an error if CSV export fails', async () => {
+    globalThis.fetch = vi.fn(async (url) => {
+      if (url.endsWith('/registrations/export')) {
+        return { ok: false, status: 500, json: async () => ({ error: 'Export failed' }) };
+      }
+      if (url.endsWith('/registrations')) {
+        return { ok: true, status: 200, json: async () => [] };
+      }
+      return { ok: true, status: 200, json: async () => event };
+    });
+
+    renderDetails();
+    const exportBtn = await screen.findByRole('button', { name: 'Export CSV' });
+    await userEvent.click(exportBtn);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Export failed');
+  });
 });
