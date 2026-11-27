@@ -20,7 +20,7 @@ export default function EventsList() {
       {loading && <Loading />}
       {error && <ErrorMessage message={error.message} onRetry={reload} />}
       {events && events.length === 0 && (
-        <EmptyState title="No events yet">
+        <EmptyState title="No events available.">
           <Link to="/events/new" className="text-indigo-600 underline">
             Create your first event
           </Link>

@@ -77,7 +77,7 @@ describe('EventsList', () => {
   test('shows the empty state when there are no events', async () => {
     mockFetch(200, []);
     render(<MemoryRouter><EventsList /></MemoryRouter>);
-    expect(await screen.findByText('No events yet')).toBeInTheDocument();
+    expect(await screen.findByText('No events available.')).toBeInTheDocument();
   });
 
   test('shows an error state when the API fails', async () => {
