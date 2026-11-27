@@ -163,6 +163,65 @@ describe('registrations', () => {
     const get = await request(app).get(`/api/events/${id}/registrations`);
     expect(get.status).toBe(404);
   });
+
+  test('handles concurrent registrations for the last seat without exceeding capacity', async () => {
+    const event = await createEvent({ capacity: 1 });
+    const attempts = Array.from({ length: 10 }, (_, i) =>
+      request(app)
+        .post(`/api/events/${event._id}/register`)
+        .send({ name: `User ${i}`, email: `user${i}@example.com` })
+    );
+
+    const results = await Promise.all(attempts);
+    const created = results.filter((r) => r.status === 201);
+    const rejected = results.filter((r) => r.status === 409);
+
+    expect(created).toHaveLength(1);
+    expect(rejected).toHaveLength(9);
+    for (const res of rejected) {
+      expect(res.body.error).toMatch(/full/i);
+    }
+    expect(await Registration.countDocuments({ eventId: event._id })).toBe(1);
+  });
+
+  test('handles concurrent registrations across multiple seats without exceeding capacity', async () => {
+    const event = await createEvent({ capacity: 3 });
+    const attempts = Array.from({ length: 10 }, (_, i) =>
+      request(app)
+        .post(`/api/events/${event._id}/register`)
+        .send({ name: `User ${i}`, email: `multi${i}@example.com` })
+    );
+
+    const results = await Promise.all(attempts);
+    const created = results.filter((r) => r.status === 201);
+    const rejected = results.filter((r) => r.status === 409);
+
+    expect(created).toHaveLength(3);
+    expect(rejected).toHaveLength(7);
+    expect(await Registration.countDocuments({ eventId: event._id })).toBe(3);
+  });
+
+  test('handles concurrent duplicate-email registrations without leaking capacity', async () => {
+    const event = await createEvent({ capacity: 2 });
+    const attempts = Array.from({ length: 5 }, () =>
+      request(app)
+        .post(`/api/events/${event._id}/register`)
+        .send({ name: 'Asha', email: 'asha@example.com' })
+    );
+
+    const results = await Promise.all(attempts);
+    const created = results.filter((r) => r.status === 201);
+    const rejected = results.filter((r) => r.status === 409);
+
+    expect(created).toHaveLength(1);
+    expect(rejected).toHaveLength(4);
+
+    const secondSeat = await request(app)
+      .post(`/api/events/${event._id}/register`)
+      .send({ name: 'Bala', email: 'bala@example.com' });
+    expect(secondSeat.status).toBe(201);
+    expect(await Registration.countDocuments({ eventId: event._id })).toBe(2);
+  });
 });
 
 describe('stats & misc', () => {

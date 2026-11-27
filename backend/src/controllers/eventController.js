@@ -35,16 +35,26 @@ async function updateEvent(req, res) {
   const event = await findEventOr404(req.params.id);
   const data = parseOrThrow(req.body);
 
-  const registrationCount = await Registration.countDocuments({ eventId: event._id });
-  if (data.capacity < registrationCount) {
+  const updated = await Event.findOneAndUpdate(
+    {
+      _id: event._id,
+      $expr: { $lte: [{ $ifNull: ['$registeredCount', 0] }, data.capacity] },
+    },
+    { $set: data },
+    { returnDocument: 'after', runValidators: true }
+  );
+
+  if (!updated) {
+    const stillExists = await Event.exists({ _id: event._id });
+    if (!stillExists) throw new HttpError(404, 'Event not found');
+
+    const registrationCount = await Registration.countDocuments({ eventId: event._id });
     throw new HttpError(400, 'Validation failed', {
       capacity: `capacity cannot be lower than the current number of registrations (${registrationCount})`,
     });
   }
 
-  event.set(data);
-  await event.save();
-  res.json(event);
+  res.json(updated);
 }
 
 async function deleteEvent(req, res) {
