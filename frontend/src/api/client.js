@@ -35,6 +35,29 @@ async function request(path, options = {}) {
 const send = (method, path, data) =>
   request(path, { method, body: data === undefined ? undefined : JSON.stringify(data) });
 
+async function exportRegistrations(id) {
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}/events/${id}/registrations/export`);
+  } catch {
+    throw new ApiError(0, 'Cannot reach the server. Is the backend running?');
+  }
+
+  if (!res.ok) {
+    let body = null;
+    try {
+      body = await res.json();
+    } catch {
+      // non-JSON response; use the status-based message below
+    }
+    throw new ApiError(res.status, body?.error || `Request failed (${res.status})`, body?.details);
+  }
+
+  const disposition = res.headers.get('Content-Disposition') || '';
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || 'registrations.csv';
+  return { blob: await res.blob(), filename };
+}
+
 export const api = {
   getStats: () => request('/stats'),
   listEvents: () => request('/events'),
@@ -43,5 +66,6 @@ export const api = {
   updateEvent: (id, data) => send('PUT', `/events/${id}`, data),
   deleteEvent: (id) => send('DELETE', `/events/${id}`),
   listRegistrations: (id) => request(`/events/${id}/registrations`),
+  exportRegistrations,
   register: (id, data) => send('POST', `/events/${id}/register`, data),
 };

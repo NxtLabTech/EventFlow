@@ -13,6 +13,8 @@ export default function EventDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [deleteError, setDeleteError] = useState(null);
+  const [exportError, setExportError] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   const event = useFetch(() => api.getEvent(id), [id]);
   const regs = useFetch(() => api.listRegistrations(id), [id]);
@@ -37,6 +39,26 @@ export default function EventDetails() {
   function handleRegistered() {
     event.reload();
     regs.reload();
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const { blob, filename } = await api.exportRegistrations(id);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError(err.message);
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -71,7 +93,18 @@ export default function EventDetails() {
       {isFull && <p className="text-sm text-amber-700">This event is full. Registration is closed.</p>}
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Registered participants</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">Registered participants</h2>
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={exporting}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {exporting ? 'Exporting...' : 'Export CSV'}
+          </button>
+        </div>
+        {exportError && <div className="mb-3"><ErrorMessage message={exportError} /></div>}
         {regs.loading && <Loading />}
         {regs.error && <ErrorMessage message={regs.error.message} onRetry={regs.reload} />}
         {regs.data && <RegistrationList registrations={regs.data} />}

@@ -163,6 +163,41 @@ describe('registrations', () => {
     const get = await request(app).get(`/api/events/${id}/registrations`);
     expect(get.status).toBe(404);
   });
+
+  test('exports registration CSV with escaped values, headers, and download filename', async () => {
+    const event = await createEvent({ title: 'Node, "Meetup"!' });
+    const registeredAt = new Date('2026-03-04T05:06:07.000Z');
+    await Registration.create({
+      name: 'Asha, "Ace"\nReddy',
+      email: 'asha@example.com',
+      eventId: event._id,
+      registeredAt,
+    });
+
+    const res = await request(app).get(`/api/events/${event._id}/registrations/export`);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toBe('text/csv; charset=utf-8');
+    expect(res.headers['content-disposition']).toBe(
+      'attachment; filename="node-meetup-registrations.csv"'
+    );
+    expect(res.text).toBe(
+      'Participant Name,Email,Event Name,Registration Date\r\n' +
+      '"Asha, ""Ace""\nReddy",asha@example.com,"Node, ""Meetup""!",2026-03-04T05:06:07.000Z\r\n'
+    );
+  });
+
+  test('exports a header-only CSV when an event has no registrations', async () => {
+    const event = await createEvent();
+    const res = await request(app).get(`/api/events/${event._id}/registrations/export`);
+
+    expect(res.status).toBe(200);
+    expect(res.text).toBe('Participant Name,Email,Event Name,Registration Date\r\n');
+  });
+
+  test('returns 404 when exporting registrations for a nonexistent event', async () => {
+    const res = await request(app).get(`/api/events/${new mongoose.Types.ObjectId()}/registrations/export`);
+    expect(res.status).toBe(404);
+  });
 });
 
 describe('stats & misc', () => {

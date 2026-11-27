@@ -11,6 +11,7 @@ EventFlow is a small, intentionally simple MVP: an organizer can create and mana
 - Duplicate registrations (same email, same event) are rejected
 - Registration is closed once an event reaches its capacity
 - View the registered participants of an event
+- Export an event's registrations as a CSV file
 - Dashboard: total events, total registrations, upcoming events
 - Loading, error, empty and "not found" states in the UI
 - FastAPI analytics service (`/analytics/events`)
@@ -145,6 +146,7 @@ Base URL: `http://localhost:5000/api`. All bodies are JSON.
 | DELETE | `/events/:id` | Delete an event and its registrations | 200 |
 | POST | `/events/:eventId/register` | Register a participant | 201 |
 | GET | `/events/:eventId/registrations` | List an event's registrations | 200 |
+| GET | `/events/:eventId/registrations/export` | Download registrations as CSV | 200 |
 | GET | `/stats` | `{ totalEvents, totalRegistrations, upcomingEvents }` | 200 |
 
 **Event body**
@@ -200,10 +202,10 @@ Django's own SQLite database (`admin/db.sqlite3`) also stores the admin login us
 ## Testing
 
 ```bash
-# Backend (17 tests) - spins up an in-memory MongoDB
+# Backend (20 tests) - spins up an in-memory MongoDB
 cd backend && npm test
 
-# Frontend (11 tests)
+# Frontend (12 tests)
 cd frontend && npm test
 
 # FastAPI (5 tests) - with the venv active
