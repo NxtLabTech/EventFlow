@@ -12,7 +12,10 @@ function mockFetch(status, body) {
   globalThis.fetch = vi.fn().mockResolvedValue({ ok: status < 400, status, json: async () => body });
 }
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe('EventForm', () => {
   test('shows validation errors and does not submit an empty form', async () => {
@@ -136,5 +139,42 @@ describe('EventDetails', () => {
     expect(await screen.findByText('Registration successful!')).toBeInTheDocument();
     expect(await screen.findByText('asha@example.com')).toBeInTheDocument();
     expect(screen.getByText('Registration successful!')).toBeInTheDocument();
+  });
+
+  test('downloads the registrations CSV and shows export errors', async () => {
+    const blob = new Blob(['Participant Name,Email,Event Name,Registration Date']);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => event })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => [] })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'attachment; filename="node-meetup-registrations.csv"' },
+        blob: async () => blob,
+      })
+      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({ error: 'Export failed' }) });
+    globalThis.fetch = fetchMock;
+    const createObjectURL = vi.fn().mockReturnValue('blob:csv');
+    const revokeObjectURL = vi.fn();
+    const URLWithBlobSupport = class extends globalThis.URL {};
+    URLWithBlobSupport.createObjectURL = createObjectURL;
+    URLWithBlobSupport.revokeObjectURL = revokeObjectURL;
+    vi.stubGlobal('URL', URLWithBlobSupport);
+    let downloadedFilename;
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function () {
+      downloadedFilename = this.download;
+    });
+    renderDetails();
+
+    const exportButton = await screen.findByRole('button', { name: 'Export CSV' });
+    await userEvent.click(exportButton);
+    await waitFor(() => expect(click).toHaveBeenCalled());
+    expect(createObjectURL).toHaveBeenCalledWith(blob);
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:csv');
+    expect(downloadedFilename).toBe('node-meetup-registrations.csv');
+    expect(fetchMock.mock.calls[2][0]).toContain('/events/e1/registrations/export');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Export failed');
   });
 });
