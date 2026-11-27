@@ -62,13 +62,18 @@ function validateEventInput(input) {
   }
 
   const cap = body.capacity;
-  const capNum = typeof cap === 'string' && cap.trim() !== '' ? Number(cap) : cap;
-  if (cap === undefined || cap === null || cap === '') {
-    errors.capacity = 'capacity is required';
-  } else if (!Number.isInteger(capNum) || capNum < 1 || capNum > 100000) {
-    errors.capacity = 'capacity must be a positive whole number (max 100000)';
+  if (cap === undefined || cap === null || (typeof cap === 'string' && cap.trim() === '')) {
+    errors.capacity = 'Capacity must be greater than 0.';
+  } else if (
+    (typeof cap !== 'number' && typeof cap !== 'string') ||
+    !Number.isFinite(Number(cap)) ||
+    !Number.isInteger(Number(cap)) ||
+    Number(cap) <= 0 ||
+    Number(cap) > 100000
+  ) {
+    errors.capacity = 'Capacity must be greater than 0 and a valid whole number (max 100000).';
   } else {
-    value.capacity = capNum;
+    value.capacity = Number(cap);
   }
 
   return { errors, value };

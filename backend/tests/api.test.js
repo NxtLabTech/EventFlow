@@ -49,6 +49,30 @@ describe('events', () => {
     expect(res.body.createdAt).toBeDefined();
   });
 
+  test.each([
+    ['zero', 0],
+    ['negative', -1],
+    ['empty', ''],
+    ['non-numeric', 'abc'],
+  ])('rejects %s capacity', async (_description, capacity) => {
+    const res = await request(app)
+      .post('/api/events')
+      .send(validEvent({ capacity }));
+
+    expect(res.status).toBe(400);
+    expect(res.body.details.capacity).toMatch(/Capacity must be greater than 0/i);
+  });
+
+  test('accepts a valid positive capacity', async () => {
+    const res = await request(app)
+      .post('/api/events')
+      .send(validEvent({ capacity: 5 }));
+
+    expect(res.status).toBe(201);
+    expect(res.body.capacity).toBe(5);
+  });
+
+
   test('rejects invalid event data with 400', async () => {
     const res = await request(app)
       .post('/api/events')
