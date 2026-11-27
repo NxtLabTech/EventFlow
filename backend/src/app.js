@@ -12,7 +12,7 @@ const origins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
   .filter(Boolean);
 
 app.disable('x-powered-by');
-app.use(cors({ origin: origins }));
+app.use(cors({ origin: origins, exposedHeaders: ['Content-Disposition'] }));
 app.use(express.json({ limit: '100kb' }));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

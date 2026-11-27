@@ -163,6 +163,39 @@ describe('registrations', () => {
     const get = await request(app).get(`/api/events/${id}/registrations`);
     expect(get.status).toBe(404);
   });
+
+  test('exports registrations as CSV with headers, data, and meaningful filename', async () => {
+    const event = await createEvent({ title: 'Node Meetup, 2099' });
+    await request(app).post(`/api/events/${event._id}/register`).send({ name: 'Asha', email: 'asha@example.com' });
+    await request(app).post(`/api/events/${event._id}/register`).send({ name: 'Doe, "Jane"', email: 'jane@example.com' });
+
+    const res = await request(app).get(`/api/events/${event._id}/registrations/export`);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/csv/i);
+    expect(res.headers['content-disposition']).toBe('attachment; filename="node-meetup-2099-registrations.csv"');
+
+    const lines = res.text.split('\n');
+    expect(lines).toHaveLength(3);
+    expect(lines[0]).toBe('Participant Name,Email,Event Name,Registration Date');
+    expect(lines[1]).toMatch(/^Asha,asha@example\.com,"Node Meetup, 2099",\d{4}-\d{2}-\d{2}T/);
+    expect(lines[2]).toMatch(/^"Doe, ""Jane""",jane@example\.com,"Node Meetup, 2099",\d{4}-\d{2}-\d{2}T/);
+  });
+
+  test('exports CSV with only headers when event has no registrations', async () => {
+    const event = await createEvent({ title: 'Empty Event' });
+    const res = await request(app).get(`/api/events/${event._id}/registrations/export`);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/csv/i);
+    expect(res.headers['content-disposition']).toBe('attachment; filename="empty-event-registrations.csv"');
+    expect(res.text).toBe('Participant Name,Email,Event Name,Registration Date');
+  });
+
+  test('exporting registrations for a nonexistent or malformed event returns 404', async () => {
+    const missing = await request(app).get(`/api/events/${new mongoose.Types.ObjectId()}/registrations/export`);
+    expect(missing.status).toBe(404);
+    const malformed = await request(app).get('/api/events/not-an-id/registrations/export');
+    expect(malformed.status).toBe(404);
+  });
 });
 
 describe('stats & misc', () => {

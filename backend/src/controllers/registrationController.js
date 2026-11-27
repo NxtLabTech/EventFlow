@@ -26,4 +26,41 @@ async function listRegistrations(req, res) {
   res.json(registrations);
 }
 
-module.exports = { registerParticipant, listRegistrations };
+function escapeCsvField(value) {
+  const str = value == null ? '' : String(value);
+  if (/[",\r\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function buildExportFilename(title) {
+  const slug = String(title || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `${slug || 'event'}-registrations.csv`;
+}
+
+async function exportRegistrations(req, res) {
+  const event = await findEventOr404(req.params.eventId);
+  const registrations = await Registration.find({ eventId: event._id }).sort({ registeredAt: 1 });
+
+  const headers = ['Participant Name', 'Email', 'Event Name', 'Registration Date'];
+  const rows = registrations.map((r) => [
+    r.name,
+    r.email,
+    event.title,
+    r.registeredAt ? new Date(r.registeredAt).toISOString() : '',
+  ]);
+
+  const csv = [headers, ...rows]
+    .map((row) => row.map(escapeCsvField).join(','))
+    .join('\n');
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${buildExportFilename(event.title)}"`);
+  res.status(200).send(csv);
+}
+
+module.exports = { registerParticipant, listRegistrations, exportRegistrations };
